@@ -121,16 +121,22 @@ type Node =
   | { kind: 'var';   index: number }            // 0-based, < n
   | { kind: 'const'; value: boolean }           // T/F  ==  U/∅
   | { kind: 'not';   arg: Node }
-  | { kind: 'and' | 'or'; left: Node; right: Node }
+  // a flat chain, >= 2 terms; A ∨ B ∨ C is one node, not two
+  | { kind: 'and' | 'or'; terms: Node[] }
   // display sugar, §8.3: kept in the AST so it renders as written,
   // desugared for mask and cost, and inert to every handout rule
   | { kind: 'diff' | 'symdiff'; left: Node; right: Node };
+
+// a selection is a subtree, or a contiguous run of one chain's terms
+type Sel =
+  | { path: Path }
+  | { path: Path; from: number; to: number };   // to exclusive
 
 interface Line {
   expr: Node;
   mask: number;          // 2^n bits; invariant: same for every line
   rule: string | null;   // label shown at right; null for line 0
-  span: Path | null;     // subtree rewritten, for highlighting
+  span: Sel | null;      // what this step rewrote, for highlighting
 }
 
 interface State {
@@ -142,13 +148,20 @@ interface State {
 }
 ```
 
-Binary operators only — `and`/`or` take exactly two arguments. This
-matches the handout (which writes `(P ∨ Q) ∨ R`, never `P ∨ Q ∨ R`) and
-matches 2-input gates in the circuit. Associativity is therefore a rule
-the student applies, not something the renderer hides.
+**`and`/`or` are n-ary chains**, not binary nodes: `A ∨ B ∨ C` is a
+single `or` with three terms and no internal grouping. Every worked
+solution in `problem_repo` writes chains flat, so the AST matches what
+the student reads (§5.1), and associativity is absorbed into the
+notation rather than tracked as bookkeeping (§5.2.1).
 
-A `Path` is a list of `'left' | 'right' | 'arg'` steps from the root.
-Paths, not character offsets, are the unit of selection.
+Circuits still use 2-input gates — `circuit04.png` draws its 3-way `∨`
+as two OR gates — so the circuit renderer binarises left-associatively
+at draw time (§9.2). Grouping is a property of the *picture*, not of the
+expression.
+
+A `Path` is a list of steps from the root, each `'arg'` (into a `not`),
+`'left' | 'right'` (into sugar), or a term index (into a chain). Paths
+and term ranges, not character offsets, are the unit of selection.
 
 Internally the simplifier also uses a flattened n-ary form and the mask;
 that is an implementation detail of §7 and never surfaces in the AST the
@@ -156,6 +169,9 @@ student sees.
 
 `mask` for `n = 4` needs 16 bits, so a plain JS `number` suffices
 throughout; no BigInt.
+
+A chain of `k` terms costs `k - 1` operators, so cost matches the
+course's counting whether or not the student writes the parentheses.
 
 Mask and cost are always computed on the **desugared** form, so a
 `diff` node costs 2 (`∩`, `^C`) and a `symdiff` node costs 5. Nothing
@@ -203,112 +219,95 @@ continuation lines:
       = A^C ∩ B^C          DeMorgan's
       = ...
 
-Rendered from the AST into nested `<span>` elements, one per node, each
-carrying its `Path`. **Not** KaTeX/MathJax: we need per-node hit
-targets, drag affordances, and three simultaneous highlight states, and
-custom spans give that directly. Unicode glyphs (`∪ ∩ ¬ ∅ ⊆`) plus
-`<sup>C</sup>` are sufficient; no math typesetting is required.
+Rendered from the AST into nested `<span>` elements, one per node and
+one per chain term, each carrying its address. **Not** KaTeX/MathJax: we
+need per-term hit targets, drag affordances, and three simultaneous
+highlight states, and custom spans give that directly. Unicode glyphs
+(`∪ ∩ ¬ ∅ ⊆`) plus `<sup>C</sup>` are sufficient; no math typesetting is
+required.
 
 Parenthesisation: `¬` binds tightest and takes no parens around a
-variable or constant. A binary node nested in a *different* binary
-operator is parenthesised. A binary node nested in the **same**
-operator is **not** — a run of one operator renders flat:
+variable or constant. A chain nested inside a *different* operator is
+parenthesised. A chain's own terms are **not** grouped, because there is
+nothing to group — the node is n-ary (§4):
 
-    AST:      or(or(and(C,B), and(not(C),B)), and(A,not(B)))
+    AST:      or[ and[C,B], and[not C, B], and[A, not B] ]
     rendered: (C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)
 
 This follows the problem sets rather than the handout. The handout
 writes `(P ∨ Q) ∨ R` because it is stating the associative law, where
-the grouping is the point; every worked solution in `problem_repo`
-flattens (`¬p ∨ ¬q ∨ p`, `(C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)`). Students
-should see the form they are asked to write.
+the grouping is the point; every worked solution flattens
+(`¬p ∨ ¬q ∨ p`, `(C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)`). Students should see
+the form they are asked to write.
 
-One exception, and it matters: **a line restores the parentheses around
-the subtree its own step rewrote**, even inside a chain where §5.1 would
-drop them. Without this an `Associative` step renders character-for-
-character identically to the line above it and the derivation appears to
-stall.
-
-The course already does exactly this. `boolean_formula_derivation_vip`
-flattens throughout (`¬p ∨ ¬q ∨ p`) yet writes its associative steps
-with the grouping explicit:
-
-    ≡ (¬p ∨ ¬q ∨ p) ∧ (¬p ∨ (¬q ∨ q))    (Associative)
-    ≡ ((¬p ∨ p) ∨ ¬q) ∧ T                (Associative)
-
-So the rule is: parentheses appear where they carry information — around
-a step's own `span` — and are dropped everywhere else. Applied to any
-rule, not just Associative, this makes every step's effect visible at a
-glance, which is the reason the `span` field exists in `Line` (§4).
-
-The AST stays **binary** underneath (§4). Flattening is a rendering
-choice, so associativity remains a real rule with a real effect, and
-circuit gates stay 2-input. The cost of the choice is that a rendered
-chain hides its grouping — which §5.2 turns into a feature.
+A step's `span` is highlighted on its line rather than parenthesised, so
+the reader can see what moved without the notation changing shape.
 
 ### 5.2 Selection
 
-Selection is by **drag**, with click and keyboard as shortcuts. The
-design problem is that a drag over flat text can land on something that
-is not an expression (`B) ∨ (¬C`), or on something that is an
-expression only under a different associative grouping. Both are
-handled, and no invalid selection is representable.
+Selection is by **drag**, with click and keyboard as shortcuts. A
+**selectable unit** is either:
 
-A **selectable unit** is either:
-
-1. any subtree of the AST, or
-2. any **contiguous run of two or more terms of one rendered chain** —
-   e.g. any 2 or 3 adjacent terms of `t1 ∨ t2 ∨ t3 ∨ t4`.
+1. any subtree, or
+2. any **contiguous run of two or more terms of one chain** — any 2 or
+   3 adjacent terms of `t1 ∨ t2 ∨ t3 ∨ t4`.
 
 Snapping, applied to whatever the raw drag covers:
 
 - a drag starting or ending mid-term **expands** to whole terms;
 - a drag spanning two different chains, or crossing out of one, snaps
   **up** to the smallest enclosing subtree;
-- a drag inside a single term resolves as usual to the smallest subtree
-  covering it;
-- a zero-length drag is a click: select the smallest subtree at that
-  point. Clicking an operator glyph selects its whole node; clicking
-  again widens to the enclosing chain.
+- a drag inside a single term resolves to the smallest subtree covering
+  it;
+- a zero-length drag is a click: the smallest subtree at that point.
+  Clicking an operator glyph selects the whole chain.
 
-Keyboard: arrows walk the tree (up = parent, left/right = sibling,
-down = first child); shift+left/right grows the selection along a
-chain; `Esc` clears.
+So `B) ∨ (¬C` is not representable — it widens to whole terms. Keyboard:
+arrows walk the tree, shift+left/right grows the selection along a
+chain, `Esc` clears.
 
-### 5.2.1 Runs that are not yet subtrees
+### 5.2.1 A run is a first-class operand
 
-A run of case 2 may not be a subtree under the current grouping. In
-`(C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)`, parsed `or(or(t1,t2),t3)`:
+Because a chain is n-ary and its operator is associative, **any
+contiguous run of its terms is itself a valid operand**, and a rule
+applies to that run directly. No regrouping step is generated, and none
+is needed: there are no parentheses in the rendering to move.
 
-- dragging `t1 ∨ t2` selects the existing left child — nothing to do;
-- dragging `t2 ∨ t3` selects a run that is only a subtree under the
-  regrouping `or(t1, or(t2,t3))`.
+This is the whole reason to go n-ary. Worked through the case that
+motivates it — applying Complement to `¬p ∨ ¬q ∨ p`, where the two terms
+are not adjacent:
 
-The second case is still selectable. While selected it renders with its
-implied grouping shown, and **the regrouping is not committed**:
+      ¬p ∨ ¬q ∨ p
+    = ¬p ∨ p ∨ ¬q        Commutative*     ← select `¬q ∨ p`, swap
+    = T ∨ ¬q             Complement       ← select `¬p ∨ p`
+    = T                  Domination
 
-    (C ∧ B) ∨ ⌈(¬C ∧ B) ∨ (A ∧ ¬B)⌉
-              └────── selected ──────┘
+Two steps, one law each, and every selection along the way is a
+contiguous drag. Commutative on a run permutes that run in place, so
+adjacent swaps reach any order and **non-contiguous selection is never
+required** — an earlier draft of this spec had it as a feature; it is
+simply unnecessary.
 
-Dragging around to watch the viewer therefore never touches the
-derivation. The regrouping lands only if the student then applies a
-rule, at which point the tool appends **two** labelled lines — the
-`Associative` step that makes the run a subtree, then the rule itself:
+Note what this says about the course materials.
+`boolean_formula_derivation_vip` performs this exact move and labels it
+`(Associative)`, then needs a second `(Associative)` later. In flat
+notation neither line is doing associative work — the work is
+commutativity both times. The tool's version above is shorter and names
+the law that actually applies.
 
-      (C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)
-    = (C ∧ B) ∨ ((¬C ∧ B) ∨ (A ∧ ¬B))     Associative
-    = ...                                 DeMorgan's
+### 5.2.2 What is left for Associative
 
-The parentheses on the `Associative` line are the §5.1 span exception at
-work; without them that line would be indistinguishable from the one
-above.
+With flat chains, the associative law has nothing to rewrite: both sides
+of `(P ∨ Q) ∨ R = P ∨ (Q ∨ R)` render as `P ∨ Q ∨ R`. It stays in the
+algebra pane, since it is on the handout and students must know it, but
+it is permanently annotated rather than clickable:
 
-This is not a workaround; it is what the course requires by hand.
-`boolean_formula_derivation_vip` regroups a flat chain with an explicit
-`(Associative)` line for exactly this reason, and `set_algebra01` marks
-students down for using two laws in one step. Making the tool emit the
-Associative step teaches why the law exists — a student who wonders what
-Associative is *for* finds out by dragging.
+    Associative — already built into how chains are written here.
+    That A ∨ B ∨ C needs no parentheses *is* this law.
+
+Clicking it opens that explainer instead of appending a line. This is
+the honest presentation: the law is not absent, it is assumed, and
+saying so teaches more than a no-op step would.
 
 Selection feedback, on every selection:
 
@@ -322,20 +321,6 @@ Selection feedback, on every selection:
 With nothing selected, the whole line is the implicit selection.
 Selection lives on one line at a time (`selectedLine`); selecting inside
 an earlier line is allowed and the viewer follows.
-
-### 5.2.2 Non-contiguous runs (P2)
-
-Applying Complement to `¬p ∨ ¬q ∨ p` needs terms 1 and 3, which no
-contiguous drag covers. P2 adds ctrl-click to add a term to the
-selection, emitting `Commutative` and then `Associative` before the
-rule.
-
-Note a discrepancy this exposes in the course materials:
-`boolean_formula_derivation_vip` performs exactly this move and labels
-the single line `(Associative)`, though reordering `¬q` past `p` is
-commutativity. The tool defaults to strict one-law-per-line (two lines),
-with a `combined chain moves` setting that collapses them to one line
-labelled `Associative` to match the existing solution style.
 
 ### 5.3 Adding lines
 
@@ -382,10 +367,17 @@ holds one or two directed rewrites; DeMorgan's, for instance, holds the
 
 Each rewrite is a pattern pair. Matching is structural, with pattern
 variables binding whole subtrees, **modulo commutativity of `∧` and
-`∨`**: the matcher tries both argument orders at every commutative node.
-This is required even to use the handout as written — the handout gives
+`∨`**: within a chain the matcher tries the terms in either order. This
+is required even to use the handout as written — the handout gives
 Identity as `∅ ∪ A = A`, and a student's expression will just as often
 read `A ∪ ∅`.
+
+Patterns match a **selection**, so a two-term pattern like
+`or($1, not($1))` matches a two-term run of a longer chain (§5.2.1), and
+the rewrite replaces just that run, leaving the chain's other terms in
+place. A chain rule that consumes a run of `k` terms out of `m` leaves a
+chain of `m - k + 1`; if that reaches one term the chain node collapses
+to it.
 
 ### 6.1 Applicability
 
@@ -405,16 +397,15 @@ directions are available to students but are not used by Simplify (§7).
 
 Clicking an enabled rewrite:
 
-1. if the selection is an uncommitted chain run (§5.2.1), appends the
-   `Associative` line that makes it a subtree;
-2. rewrites the selected subtree in a copy of the selected line's AST;
-3. appends a line with `rule` = the handout group name and `span` = the
-   rewritten path;
-4. re-highlights: the new line's rewritten part is flashed, then left
+1. rewrites the selected subtree or run in a copy of the selected line's
+   AST;
+2. appends a line with `rule` = the handout group name and `span` = the
+   rewritten selection;
+3. re-highlights: the new line's rewritten part is flashed, then left
    subtly marked;
-5. asserts the mask is unchanged (§9.4);
-6. moves `selectedLine` to the new line and keeps the selection on the
-   corresponding subtree, so rules can be chained without re-clicking.
+4. asserts the mask is unchanged (§9.4);
+5. moves `selectedLine` to the new line and keeps the selection on the
+   result, so rules can be chained without re-clicking.
 
 The viewer does not move. That is the point.
 
@@ -474,6 +465,34 @@ Outcomes:
 
 Simplify is disabled when the line is already at target cost, with the
 button captioned `already minimal`.
+
+### 7.1 Hints, not answers
+
+Dumping a finished derivation answers the question the student was
+supposed to answer. Simplify is therefore a **graduated reveal**, with
+each level exposing one more piece of the step the search already found:
+
+| control | reveals |
+|---|---|
+| `hint: expression` | highlights the subtree or run the next step acts on, in the expression pane. Nothing is appended. |
+| `hint: algebra` | additionally highlights the rule to use, in the algebra pane. Nothing is appended. |
+| `apply` | performs that one step, appending its line. |
+| `run to end` | applies every remaining step. |
+
+So a student can ask "where should I be looking?", try it themselves,
+and only then ask "which law?". The circuit shrinks a gate at a time
+rather than all at once (§9.2).
+
+Hints re-plan. The search (stage 2) runs from the *current* expression
+every time a hint is requested, so if the student applies a different
+legal rule than the one hinted, the next hint is computed for where they
+actually are, not where the tool expected them to be. There is no stored
+plan to go stale, and no "you were supposed to..." — any legal route is
+as good as the tool's own.
+
+If the student applies the hinted rule themselves rather than pressing
+`apply`, the hint simply advances. The tool never comments on this; it
+has no notion of a wrong step (§5.3).
 
 ---
 
@@ -564,9 +583,17 @@ column. Each header shows the subexpression that column evaluates.
 This mirrors `problem_repo/problems/logic/circuit04.tex`, whose
 solution table is exactly that: `A B C | ¬C | C∧B | ¬C∧B | A∧¬B |
 (C∧B) ∨ (¬C∧B) ∨ (A∧¬B)`. The intermediate columns are the working the
-course asks for, and they line up one-to-one with the gates in the
-circuit (§9.2) and with the wire labels on hover (§9.3) — column *k* is
-gate *k*.
+course asks for.
+
+The n-ary chain (§4) is what makes this line up. A binary AST would
+insert a column for the partial `(C∧B) ∨ (¬C∧B)`, which the course's
+table does not have; with a chain node there is no such intermediate to
+report. The remaining difference is that the course inlines the trivial
+`¬B`, so a `hide negation columns` option matches its table exactly.
+
+Columns still correspond to gates (§9.2) and to the wire labels on hover
+(§9.3), with the caveat that the chain's own column is the output of the
+*last* of its OR gates.
 
 Intermediate columns are collapsible to a single output column
 (`show working` toggle, on by default for `n ≤ 3`), since a wide AST at
@@ -585,6 +612,13 @@ gate per operator node, standard distinctive-shape symbols (AND, OR,
 inverter bubble for `¬`), variable inputs on the left, single output on
 the right. Layered layout by longest path from the inputs; wires as
 orthogonal polylines with junction dots where a variable fans out.
+
+Gates are **2-input**, so an n-ary chain (§4) is binarised at draw time,
+left-associatively: a 3-term `∨` becomes two OR gates, the first
+combining terms 1 and 2. This is what `circuit04.png` draws, so the
+tool's output matches the course's existing figures. The grouping is
+invented by the renderer and has no counterpart in the expression —
+which is the point of §5.2.2.
 
 Because it tracks the selected line, the circuit visibly shrinks as the
 student simplifies. That is the payoff of logic mode and should be
@@ -631,13 +665,19 @@ started in sets mode reads correctly in logic mode.
 | variables | see below | `A, B, C, D` |
 | viewer | truth table + circuit | Venn diagram |
 
-Variable letters are a **setting independent of mode**, defaulting to
-`A, B, C, D` in both modes: the Venn circles have to be `A, B, C`
-regardless, and the logic problems use `A, B, C` about as often as
-`P, Q, R` (`boolean_simplify_04..06` read `A ∨ (A ∧ B) ∨ (¬A ∧ B)`).
-`P, Q, R, S` and `p, q, r, s` are presets, the first matching the
-handout. Toggling modes never renames variables — a derivation should
-not appear to change subject.
+Variable letters **follow the input**: whatever letters the starting
+expression was written with are kept, so a problem pasted from a sheet
+reads back the way it was written. `A, B, C, D` / `P, Q, R, S` /
+`p, q, r, s` are available as presets, and only an explicit preset
+choice renames anything.
+
+Toggling modes never renames variables — a derivation should not appear
+to change subject, and the course's own materials are not consistent
+enough to make a rename meaningful (`boolean_simplify_04..06` are
+`A ∨ (A ∧ B) ∨ (¬A ∧ B)`, in logic, with set-operator instructions).
+Venn circles are labelled with whatever letters are in play. Where there
+is no input to follow — a mask synthesised by clicking the viewer
+(§8.2) — the current letter set carries over, defaulting to `A, B, C`.
 
 The handout writes complement as a superscript `C` and notes bar
 notation means the same; it also mixes `T`/`F` with `True`/`False`. The
@@ -662,10 +702,17 @@ should be mostly properties rather than examples.
   the snapped selection is always a selectable unit (§5.2) whose
   rendered extent covers the range — never a partial term, never a span
   crossing out of one chain.
-- **Chain regrouping.** For a random chain and a random contiguous run,
-  the emitted `Associative` step is a legal associativity rewrite, the
-  run is a subtree afterwards, and the mask is unchanged. A run that is
-  already a subtree emits no step.
+- **Chain runs.** For a random chain and a random contiguous run, any
+  rule that matches the run rewrites only that run, leaves the other
+  terms in order, and preserves the mask. A chain reduced to one term
+  collapses to that term.
+- **Commutative reaches every order.** For a random chain and a random
+  target permutation, a sequence of two-term-run swaps reaches it — the
+  property that makes non-contiguous selection unnecessary (§5.2.1).
+- **Hints are consistent.** After any legal rule application, the next
+  `hint: expression` and `hint: algebra` name a rule that is applicable
+  to the selection they name, and following hints to the end reaches
+  target cost (§7.1).
 - **Sugar is inert.** No rule except `Definition*` matches any node
   containing a `diff`/`symdiff`, and desugaring preserves the mask.
 - **Simplify.** Result mask == input mask; result cost <= input cost;
@@ -712,31 +759,33 @@ same notice as §8.2.
 
 ## 13. Phasing
 
-**P0 — the core loop.** AST, tolerant parser, flattened renderer, mask,
-drag selection with snapping (§5.2) including uncommitted chain runs and
-the auto-`Associative` step, Venn viewer with clickable regions
-(`n = 2, 3`), truth table with clickable outputs and gate columns, mode
-toggle with glyph swap, the Appendix B rule table with applicability
-dimming, derivation lines with rule labels, mask assertion. This alone
-is a usable teaching tool.
+**P0 — the core loop.** n-ary AST, tolerant parser, flat renderer, mask,
+drag selection with snapping over subtrees and chain runs (§5.2), Venn
+viewer with clickable regions (`n = 2, 3`), truth table with clickable
+outputs and gate columns, mode toggle with glyph swap, the Appendix B
+rule table with applicability dimming, derivation lines with rule
+labels, mask assertion. This alone is a usable teaching tool.
 
-**P1 — the reasons to come back.** Circuit rendering, row-hover wire
-tracing, Simplify with derivation, difference/symmetric-difference sugar
-(§8.3), URL state and deep links (§16.3), undo/redo, figure export
-(§16.1), rule-hover preview, keyboard navigation, `start from sum of
-minterms`.
+**P1 — the reasons to come back.** Circuit rendering with left-assoc
+binarisation, row-hover wire tracing, Simplify with graduated hints
+(§7.1), difference/symmetric-difference sugar (§8.3), URL state and deep
+links (§16.3), undo/redo, figure export (§16.1), rule-hover preview,
+keyboard navigation, `start from sum of minterms`.
 
-**P2 — polish and reach.** LaTeX emission (§16.2), non-contiguous chain
-selection (§5.2.2), 4-set Venn (four ellipses), animated gate removal,
-`view=viewer` embed mode, printable derivation.
+**P2 — polish and reach.** LaTeX emission (§16.2), 4-set Venn (four
+ellipses), animated gate removal, `view=viewer` embed mode, printable
+derivation, `hide negation columns`.
 
 Circuit and hover tracing are P1 rather than P0 only because the Venn/
 truth-table loop is what makes the tool teach; they are the second thing
 built, not the last.
 
-Two notes on ordering. Drag selection is P0, not P1, because it is the
+Three notes on ordering. Drag selection is P0, not P1, because it is the
 primary interaction and the snapping rules (§5.2) shape the renderer —
-retrofitting it would mean rewriting §5.1. LaTeX emission is P2 while
+retrofitting it would mean rewriting §5.1. The hint ladder is bundled
+with Simplify rather than deferred, because a Simplify that only dumps
+the answer is the version students would learn least from, and the
+search that powers it is the same either way. LaTeX emission is P2 while
 figure export is P1 because the figures replace an existing manual
 workflow (`venn_abc.odp`) and the `.tex` emission only saves typing.
 
@@ -943,11 +992,16 @@ guess.
    with a trailing `*` and footnoted as not being on the handout, so a
    student never cites a law the course did not give them.
 
-2. **Flattened rendering, binary AST.** `¬p ∨ ¬q ∨ p`, not
+2. **Flat rendering and an n-ary AST.** `¬p ∨ ¬q ∨ p`, not
    `(¬p ∨ ¬q) ∨ p` (§5.1). Evidence: every worked solution in
    `problem_repo` flattens; the handout parenthesises only because it is
-   stating the associative law. Grouping is recovered on selection
-   (§5.2.1) rather than shown always.
+   stating the associative law. Per instruction, if the parentheses are
+   dropped then the associative step is not needed either — so chains
+   are n-ary, any contiguous run of terms is a valid operand, and
+   Associative becomes an explainer rather than a rewrite (§5.2.2).
+   Non-contiguous selection, which an earlier draft needed, drops out.
+   Circuits stay 2-input by binarising at draw time (§9.2), matching
+   `circuit04.png`.
 
 3. **Cost = operator count, complement included** (§7). Evidence: the
    problems say "the least possible number of set operators (`∪`, `∩`,
@@ -964,45 +1018,47 @@ guess.
    the tool is exploratory and should only ever produce correct,
    self-consistent derivations. It has no notion of a wrong step and
    does not grade. Typed input sets the *starting* expression only
-   (§5.4) — a distinction worth confirming, since without it a student
-   cannot load an expression off their homework sheet.
+   (§5.4), confirmed, so a student can still load a problem off their
+   homework sheet.
 
-6. **`−` and `Δ` are input and viewer sugar, inert to algebra** (§8.3).
+6. **Simplify reveals gradually** (§7.1): `hint: expression`, then
+   `hint: algebra`, then `apply`, then `run to end`. Per instruction.
+   Hints re-plan from the current expression, so any legal route the
+   student takes is followed rather than corrected.
+
+7. **Variable letters follow the input** (§10), renamed only by an
+   explicit preset, never by the mode toggle. Per instruction.
+
+8. **`−` and `Δ` are input and viewer sugar, inert to algebra** (§8.3).
    Per instruction, and consistent with `set_algebra01` banning
    difference from algebra problems while the Venn problems use it
    freely.
 
-7. **The tool is also an authoring aid** (§16): figure export, LaTeX
+9. **The tool is also an authoring aid** (§16): figure export, LaTeX
    emission, and instructor deep links, per instruction.
 
-8. **Truth tables show intermediate gate columns** (§9.1). Evidence:
+10. **Truth tables show intermediate gate columns** (§9.1). Evidence:
    `circuit04.tex`'s solution table has one column per gate.
 
-9. **Gates are `∧ ∨ ¬` only** (§9.2). Evidence: every `circuit*.tex`
+11. **Gates are `∧ ∨ ¬` only** (§9.2). Evidence: every `circuit*.tex`
    asks for `Y` in terms of `∧, ∨, ¬`; no NAND, NOR, or XOR appears.
 
-10. **Row order is `000, 001, 010, ...` with the first variable as MSB**
+12. **Row order is `000, 001, 010, ...` with the first variable as MSB**
     (§2.1). Evidence: `circuit04.tex`'s solution table.
 
 Still open, with a default in place so nothing is blocked:
 
-- **Variable letters.** Defaulted to `A, B, C` in both modes, since the
-  logic problems use `A, B, C` about as often as `P, Q, R`
-  (`boolean_simplify_04..06` are `A ∨ (A ∧ B) ∨ (¬A ∧ B)`) and the Venn
-  labels have to be `A, B, C` regardless. Letters are a setting
-  independent of mode, so toggling modes does **not** rename variables —
-  which also sidesteps the course's own `p,q,r` / `P,Q,R` / `A,B,C`
-  inconsistency. §10's table says otherwise and should be read as the
-  handout's convention, available as a preset.
 - **`=` vs `≡`.** Logic problems use both. Defaulted to `=`, with `≡`
   as a notation option.
 - **`n = 4` in sets mode.** Deferred to P2 (§12).
 - **Provable minimality at `n = 4`.** Not claimed (§7).
-- **Combined chain moves.** Strict two-line `Commutative` +
-  `Associative` by default; a setting collapses them to one
-  `Associative` line to match `boolean_formula_derivation_vip`, which
-  labels that combined move `(Associative)` (§5.2.2). Worth deciding
-  which is the form students should learn to write.
+- **Whether to flag the handout's Associative entry.** The tool presents
+  Associative as assumed rather than applied (§5.2.2), which is a
+  defensible reading of flat notation but differs from
+  `boolean_formula_derivation_vip`, where two lines are labelled
+  `(Associative)` for moves that are really commutativity. If those
+  solutions are staying as written, the explainer should probably say so
+  explicitly rather than leave a student to notice the mismatch.
 
 ---
 
@@ -1049,10 +1105,9 @@ prefers.
 
 ```ts
 const RULES = [
-  { group: 'Associative',     lhs: 'or(or($1,$2),$3)',  rhs: 'or($1,or($2,$3))' },
-  { group: 'Associative',     lhs: 'or($1,or($2,$3))',  rhs: 'or(or($1,$2),$3)' },
-  { group: 'Associative',     lhs: 'and(and($1,$2),$3)', rhs: 'and($1,and($2,$3))' },
-  { group: 'Associative',     lhs: 'and($1,and($2,$3))', rhs: 'and(and($1,$2),$3)' },
+  // Associative has no entry: chains are n-ary, so both sides of the
+  // law render identically and there is nothing to rewrite (§5.2.2).
+  // It appears in the pane as an explainer, not a rewrite.
 
   { group: 'Double Negation', lhs: 'not(not($1))',      rhs: '$1' },
   { group: 'Double Negation', lhs: '$1',                rhs: 'not(not($1))', expands: true },
@@ -1084,7 +1139,9 @@ const RULES = [
   { group: 'Domination',      lhs: 'or(T,$1)',          rhs: 'T' },
   { group: 'Domination',      lhs: 'and(F,$1)',         rhs: 'F' },
 
-  // not on the handout; see §18, item 1
+  // not on the handout; see §18, item 1. Applied to a two-term run of a
+  // chain it swaps those terms in place, which is how a student brings
+  // non-adjacent terms together (§5.2.1).
   { group: 'Commutative*',    lhs: 'or($1,$2)',         rhs: 'or($2,$1)' },
   { group: 'Commutative*',    lhs: 'and($1,$2)',        rhs: 'and($2,$1)' },
 
@@ -1094,9 +1151,12 @@ const RULES = [
 ];
 ```
 
-Matching is modulo commutativity of `∧`/`∨` (§6), so the mirrored forms
-of Absorption, Complement, Identity, and Domination
-(`or(not($1),$1)`, `and($1,T)`, ...) need no separate entries.
+Patterns are written binary. Against an n-ary chain a two-term pattern
+matches any adjacent pair, a three-term pattern any adjacent triple, and
+the rewrite substitutes in place (§6). Matching is modulo commutativity
+of `∧`/`∨`, so the mirrored forms of Absorption, Complement, Identity,
+and Domination (`or(not($1),$1)`, `and($1,T)`, ...) need no separate
+entries.
 
 Rules are written once, in logic operators. Sets mode is a rendering of
 the same table (§10) — there is no second rule table, and the group
