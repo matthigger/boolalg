@@ -7,6 +7,10 @@ identity is visibly a rewrite that does not change the picture.
 
 **[Try it](https://matthigger.github.io/boolalg/)** — no install, no login.
 
+![logic mode](media/logic-mode.png)
+
+Sets mode shows the same expression as a Venn diagram:
+
 ![sets mode](media/sets-mode.png)
 
 - **docs/** — the app. Plain ES modules, no build step: open

@@ -99,7 +99,7 @@ scrolling on a laptop; panes scroll internally.
     ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
     │  EXPRESSION                            │  Identity     [x2]ⓘ │
     │                                        │  Domination   [x2]ⓘ │
-    │    (A ∧ B) ∨ ¬C                        │  Commutative* [x2]ⓘ │
+    │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
     │  = ¬(A ∧ B) ∧ C          DeMorgan's    │                     │
     │  = ...                                 │  [ Simplify ]       │
     │                                        │  [ hint ▾ ]         │
@@ -120,7 +120,7 @@ available in logic mode only (§12).
 target from the rule row itself, so a demo can never be triggered by a
 misplaced click meant to apply a rule.
 
-`*` Commutative is not on the handout; see §18, item 1.
+`*` marks a rule not on the handout — only `Definition` (§8.3).
 
 ### 3.1 First load
 
@@ -319,7 +319,7 @@ motivates it — applying Complement to `¬p ∨ ¬q ∨ p`, where the two terms
 are not adjacent:
 
       ¬p ∨ ¬q ∨ p
-    = ¬p ∨ p ∨ ¬q        Commutative*     ← select `¬q ∨ p`, swap
+    = ¬p ∨ p ∨ ¬q        Commutative      ← select `¬q ∨ p`, swap
     = T ∨ ¬q             Complement       ← select `¬p ∨ p`
     = T                  Domination
 
@@ -336,7 +336,7 @@ the first only re-brackets (`(¬p ∨ ¬q) ∨ p` to `¬p ∨ ¬q ∨ p`) and is
 correctly labelled, while the second reorders terms
 (`¬p ∨ ¬q ∨ p` to `(¬p ∨ p) ∨ ¬q`) and is commutativity wearing the
 wrong name. In flat notation the first vanishes entirely and the second
-is the single `Commutative*` step above.
+is the single `Commutative` step above.
 
 ### 5.2.2 What is left for Associative
 
@@ -692,7 +692,8 @@ They are **input and viewer sugar, not algebra**:
       A − B  =  A ∩ B^C            Definition of difference
       A Δ B  =  (A − B) ∪ (B − A)  Definition of symmetric difference
 
-  labelled `Definition` and marked `*` as off-handout (§18, item 1).
+  labelled `Definition` and marked `*` as off-handout (§18, item 1),
+  the only starred rule.
 
 So a student can load `(A ∪ B) − C` off a problem sheet, see it shaded,
 and must apply the definition before any handout law becomes available —
@@ -1150,12 +1151,16 @@ Settled by the course materials or by explicit instruction. Recorded
 here with the evidence, so a future reader can tell a decision from a
 guess.
 
-1. **Off-handout rules are marked `*`.** The tool needs three things the
-   handout lacks: commutativity (the matcher cannot otherwise apply the
-   handout's own `∅ ∪ A = A` to a student's `A ∪ ∅`), and the two
-   `Definition` rules for `−` and `Δ` (§8.3). All three are labelled
-   with a trailing `*` and footnoted as not being on the handout, so a
-   student never cites a law the course did not give them.
+1. **Commutative was added to the handout; only `Definition` is
+   starred.** The tool cannot work without commutativity — the matcher
+   could not otherwise apply the handout's own `∅ ∪ A = A` to a
+   student's `A ∪ ∅`, and bringing two non-adjacent terms of a chain
+   together is a commutative move (§5.2.1). Rather than have the tool
+   cite a law the course had not given, `Commutative Laws` was added to
+   `logic_set_identities.odt` beside Associative, in both columns.
+   The two `Definition` rules for `−` and `Δ` (§8.3) remain off-handout
+   and keep their trailing `*`, so a student still never cites a law the
+   course did not give them.
 
 2. **Flat rendering and an n-ary AST.** `¬p ∨ ¬q ∨ p`, not
    `(¬p ∨ ¬q) ∨ p` (§5.1). Evidence: every worked solution in
@@ -1241,16 +1246,18 @@ guess.
 16. **Row order is `000, 001, 010, ...` with the first variable as MSB**
     (§2.1). Evidence: `circuit04.tex`'s solution table.
 
-Still open, with a default in place so nothing is blocked:
+Settled since:
 
-- **`=` vs `≡`.** Logic problems use both. Defaulted to `=`, with `≡`
-  as a notation option. This is the only item still open.
+- **`=` vs `≡`.** Logic problems use both; `=` is used throughout, per
+  instruction. Nothing else is open.
 
 ---
 
 ## Appendix A — the CS1800 handout, transcribed
 
 From `reference/logic_set_identities.pdf` (source `.odt` alongside).
+The Commutative row was added to the master handout as part of this
+work; see §18, item 1.
 Boolean algebra on the left (`P, Q, R` Boolean variables), set algebra on
 the right (`A, B, C` subsets of a universal set `U`). The handout uses
 the `C` superscript rather than bar notation for complement; they mean
@@ -1260,6 +1267,8 @@ the same thing.
 |---|---|---|
 | Associative | `(P ∨ Q) ∨ R = P ∨ (Q ∨ R)` | `(A ∪ B) ∪ C = A ∪ (B ∪ C)` |
 | | `(P ∧ Q) ∧ R = P ∧ (Q ∧ R)` | `(A ∩ B) ∩ C = A ∩ (B ∩ C)` |
+| Commutative | `P ∨ Q = Q ∨ P` | `A ∪ B = B ∪ A` |
+| | `P ∧ Q = Q ∧ P` | `A ∩ B = B ∩ A` |
 | Double Negation | `¬¬P = P` | `(A^C)^C = A` |
 | DeMorgan's | `¬(P ∨ Q) = ¬P ∧ ¬Q` | `(A ∪ B)^C = A^C ∩ B^C` |
 | | `¬(P ∧ Q) = ¬P ∨ ¬Q` | `(A ∩ B)^C = A^C ∪ B^C` |
@@ -1325,11 +1334,10 @@ const RULES = [
   { group: 'Domination',      lhs: 'or(T,$1)',          rhs: 'T' },
   { group: 'Domination',      lhs: 'and(F,$1)',         rhs: 'F' },
 
-  // not on the handout; see §18, item 1. Applied to a two-term run of a
-  // chain it swaps those terms in place, which is how a student brings
-  // non-adjacent terms together (§5.2.1).
-  { group: 'Commutative*',    lhs: 'or($1,$2)',         rhs: 'or($2,$1)' },
-  { group: 'Commutative*',    lhs: 'and($1,$2)',        rhs: 'and($2,$1)' },
+  // Applied to a two-term run of a chain it swaps those terms in place,
+  // which is how a student brings non-adjacent terms together (§5.2.1).
+  { group: 'Commutative',     lhs: 'or($1,$2)',         rhs: 'or($2,$1)' },
+  { group: 'Commutative',     lhs: 'and($1,$2)',        rhs: 'and($2,$1)' },
 
   // sets mode only; the sole rules that may touch a sugar node (§8.3)
   { group: 'Definition*',     lhs: 'diff($1,$2)',       rhs: 'and($1,not($2))' },

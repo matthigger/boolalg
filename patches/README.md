@@ -22,28 +22,20 @@ The printed answer is still right, because `C ∨ ¬C` and `B ∨ ¬B` are
 both `T` — which is why it survived proofreading, and why comparing
 truth tables would not have caught it. Unambiguous fix, no dependencies.
 
-## `vip-fix-associative-label.patch` — needs a decision first
+## `vip-fix-associative-label.patch` — now safe to apply
 
 `boolean_formula_derivation_vip.tex` labels two steps `(Associative)`.
 The first is correct (pure re-bracketing). The second turns
 `¬p ∨ ¬q ∨ p` into `(¬p ∨ p) ∨ ¬q`, moving `p` past `¬q` — commutativity,
 not associativity. The patch relabels it `(Commutative)`.
 
-**The catch: `logic_set_identities.pdf` has no commutative law.** So
-applying this patch cites a law the handout does not give students.
-There are three ways out, in rough order of preference:
-
-1. **Add Commutative to the handout.** It belongs there — every other
-   presentation of these identities has it, and the step genuinely needs
-   it. Then this patch is correct as written. This also lets the tool
-   drop the `*` it currently uses to mark Commutative as off-handout
-   (SPEC.md section 18, item 1).
-2. **Rewrite the derivation** to avoid the reorder. There is no way to
-   reach `T` from `(¬p ∨ ¬q) ∨ p` by re-bracketing alone, so this means
-   restructuring earlier steps, not editing this line.
-3. **Leave it.** The step is doing real work and students follow it; the
-   label is just wrong. The tool will name commutativity regardless, so
-   a student comparing the two will see the mismatch.
+This originally depended on a decision, because the handout had no
+commutative law and the patch would have cited a law students were never
+given. **That is resolved:** `Commutative Laws` has been added to
+`materials/logic_set_identities.odt` (and its PDF regenerated), beside
+Associative, in both the logic and set columns. So the label this patch
+introduces is now one students have on their sheet, and the tool no
+longer stars it.
 
 Also worth noting while in this file: it labels the complement law
 `(Negation)` in three places, where the handout says `Complement`.
