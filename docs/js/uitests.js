@@ -161,6 +161,89 @@ setTimeout(() => {
   ok('rule rows rendered',
      document.querySelectorAll('#rules .rule-row').length === 11);
 
+  /* -- the page is actually clickable ------------------------------
+     These exist because a `.overlay { display: flex }` rule once beat
+     the UA's `[hidden] { display: none }`, leaving the modal backdrop
+     permanently over the page. Every test above still passed, because
+     they call functions rather than click. Hit-test the real page. */
+
+  function covering(node) {
+    if (!node) return 'missing';
+    node.scrollIntoView({ block: 'center' });
+    const r = node.getBoundingClientRect();
+    if (!r.width || !r.height) return 'zero-size';
+    const x = Math.round(r.left + r.width / 2);
+    const y = Math.round(r.top + r.height / 2);
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return 'offscreen';
+    const top = document.elementFromPoint(x, y);
+    if (!top) return 'nothing there';
+    if (top === node || node.contains(top) || top.contains(node)) return null;
+    return top.id || top.className || top.tagName;
+  }
+
+  B.load('(A u B)^C', 'sets');
+  const ov = document.getElementById('overlay');
+  eqv('backdrop is display:none while hidden',
+      getComputedStyle(ov).display, 'none');
+  const tst = document.getElementById('toast');
+  tst.hidden = true;              // an earlier test may have raised it
+  eqv('toast is display:none while hidden',
+      getComputedStyle(tst).display, 'none');
+  tst.hidden = false;
+  eqv('a visible toast never eats clicks',
+      getComputedStyle(tst).pointerEvents, 'none');
+  tst.hidden = true;
+
+  for (const [name, q] of [
+    ['a rule button', '#rules .rule-row button.r'],
+    ['a law info button', '#rules .rule-row button.info'],
+    ['the mode toggle', '#modeToggle button'],
+    ['the Simplify button', '#simplify'],
+    ['the expression input', '#src'],
+    ['the viewer', '#viewer svg'],
+    ['an expression term', '#lines .nd'],
+  ]) {
+    const node = document.querySelector(q);
+    const c = covering(node);
+    ok(`${name} is reachable by a click`, c === null, `covered by ${c}`);
+  }
+
+  /* -- real clicks, dispatched through the DOM -- */
+  {
+    const n0 = S.lines.length;
+    const btn = [...document.querySelectorAll('#rules .rule-row button.r')]
+      .find((b) => b.textContent.trim().startsWith('DeMorgan'));
+    ok('the DeMorgan button is enabled', !!btn && !btn.disabled);
+    btn.click();
+    eqv('a real click applies the rule', S.lines.length, n0 + 1);
+  }
+  {
+    document.querySelector('#modeToggle button[data-mode="logic"]').click();
+    eqv('a real click switches mode', S.mode, 'logic');
+    document.querySelector('#modeToggle button[data-mode="sets"]').click();
+    eqv('and switches back', S.mode, 'sets');
+  }
+  {
+    document.querySelector('#rules .rule-row button.info').click();
+    ok('a real click opens the law card',
+       !ov.hidden && getComputedStyle(ov).display === 'flex');
+    ok('the card rendered', !!document.querySelector('#overlay .card'));
+    const dismiss = [...document.querySelectorAll('#overlay .cardfoot button')]
+      .find((b) => b.textContent === 'dismiss');
+    dismiss.click();
+    ok('dismiss closes it',
+       ov.hidden && getComputedStyle(ov).display === 'none');
+    ok('and the page is clickable again',
+       covering(document.getElementById('simplify')) === null);
+  }
+  {
+    const n0 = S.lines.length;
+    document.querySelector('#viewer svg.venn').dispatchEvent(
+      new MouseEvent('click', { clientX: 0, clientY: 0, bubbles: true }));
+    ok('a real click on the diagram replaces the derivation',
+       S.lines.length === 1 || S.lines.length !== n0);
+  }
+
   document.getElementById('out').textContent =
     `RESULT pass=${pass} fail=${fail}\n\n` + log.join('\n');
   document.title = `pass=${pass} fail=${fail}`;
