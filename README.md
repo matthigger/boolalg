@@ -10,6 +10,7 @@ identity is visibly a rewrite that does not change the picture.
   ODT source) that the rule set is taken from; transcribed in
   SPEC.md Appendix A and encoded in Appendix B.
 
-Status: specification only, nothing implemented. Section 17 of the spec
-lists the decisions made on the author's behalf, each with a default, in
-case any should go the other way.
+Status: specification only, nothing implemented. Section 18 records
+every design decision with the evidence behind it — mostly the course's
+own problem sets and rubrics in `CS1800/problem_repo` — and lists what
+is still open.
