@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boolean Algebra Explorer — CS1800</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header>
+  <h1>Boolean Algebra Explorer</h1>
+  <div class="modes" id="modeToggle" role="tablist" aria-label="notation">
+    <button data-mode="sets" role="tab">SETS</button>
+    <button data-mode="logic" role="tab">LOGIC</button>
+  </div>
+  <label class="vars">variables
+    <span id="varPick" class="seg"></span>
+  </label>
+  <button id="examplesBtn" class="ghost">examples ▾</button>
+</header>
+
+<main>
+  <section class="viewer" id="viewer" aria-label="viewer"></section>
+
+  <section class="expression" id="expression" aria-label="expression">
+    <div class="lines" id="lines"></div>
+    <div class="entry">
+      <label for="src">start from</label>
+      <input id="src" spellcheck="false" autocomplete="off"
+             placeholder="(A u B)^C">
+      <span class="err" id="srcErr"></span>
+    </div>
+  </section>
+
+  <aside class="algebra" aria-label="algebra">
+    <div class="rules" id="rules"></div>
+    <div class="actions">
+      <button id="simplify" class="primary">Simplify</button>
+      <div class="hintrow">
+        <button id="hintExpr" class="ghost">hint: expression</button>
+        <button id="hintRule" class="ghost">hint: algebra</button>
+      </div>
+      <div class="hintrow">
+        <button id="applyStep" class="ghost">apply</button>
+        <button id="runAll" class="ghost">run to end</button>
+      </div>
+      <div id="simpNote" class="note"></div>
+      <div class="hintrow">
+        <button id="reset" class="ghost">Reset</button>
+        <button id="share" class="ghost">Share</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="overlay" class="overlay" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

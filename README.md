@@ -5,6 +5,14 @@ at once — symbols, a derivation, and a picture (Venn diagram in sets
 mode, truth table + circuit in logic mode) — so that applying an
 identity is visibly a rewrite that does not change the picture.
 
+**[Try it](https://matthigger.github.io/boolalg/)** — no install, no login.
+
+![sets mode](media/sets-mode.png)
+
+- **docs/** — the app. Plain ES modules, no build step: open
+  `docs/index.html` through any static server, or just deploy the
+  folder. Tests are `docs/test.html` (core) and `docs/uitest.html`
+  (interaction); both print `RESULT pass=N fail=N`.
 - **[SPEC.md](SPEC.md)** — the specification. Start here.
 - **reference/** — the CS1800 `logic_set_identities` handout (PDF +
   ODT source) that the rule set is taken from; transcribed in
@@ -16,7 +24,7 @@ identity is visibly a rewrite that does not change the picture.
 - **patches/** — fixes for two errors the prototype found in
   `CS1800/problem_repo`. Not applied.
 
-Status: specification only, nothing implemented. Section 18 records
+Status: working prototype, 97 tests passing. Section 18 records
 every design decision with the evidence behind it — mostly the course's
 own problem sets and rubrics in `CS1800/problem_repo` — and lists what
 is still open.

@@ -872,12 +872,16 @@ applied to its own left-hand side, yielding its right-hand side.
   in CI over a generated file), and every emitted line carries exactly
   one `\text{}` label.
 
-Interaction smoke tests (Playwright) for the five loops that are easy to
-break: toggle mode mid-derivation, click a region and confirm the
+Both suites run in a headless browser (`chromium --headless --dump-dom`
+over a local static server) and print a machine-readable `RESULT
+pass=N fail=N` line, so they need no test runner and no Node.
+
+Interaction tests drive the live app through `window.BAE` rather than
+synthesising clicks, covering the five loops that are easy to break: toggle mode mid-derivation, click a region and confirm the
 derivation resets, apply DeMorgan's and confirm the shading is
-unchanged, hover a row and confirm every gate is labelled, and drag a
-non-subtree chain run then apply a rule and confirm two labelled lines
-appear.
+unchanged, hover a row and confirm every gate is labelled, and select a
+run of chain terms then apply a rule and confirm it rewrites only that
+run.
 
 ---
 
@@ -949,8 +953,20 @@ and hover-to-trace has to feel instant, so a server round-trip would only
 add latency and hosting cost. This also makes the tool free to host and
 impossible to break during a semester.
 
-- **TypeScript + React + Vite.** React for the pane state, Vite for the
-  static build.
+- **Vanilla ES modules, no build step.** The implementation in `docs/`
+  is plain JavaScript loaded as native modules: no bundler, no
+  dependencies, no `node_modules`. Deploying is copying the folder.
+
+  This departs from an earlier draft of this section, which specified
+  TypeScript, React and Vite. Two reasons. The machine this was built on
+  has no Node toolchain, so a build step would have been unbuildable
+  where it is maintained. More durably: a course tool has to still work
+  in five semesters, and the thing most likely to break first is a
+  toolchain nobody has run since. The app is one page with a reducer and
+  two SVG viewers, which is not enough complexity to earn a framework.
+
+  What is given up is type checking, and JSX. If either becomes worth
+  it, the `core/` modules are plain functions and port unchanged.
 - **SVG, hand-rolled, for both viewers.** No charting or diagram
   library: the Venn needs per-region paths and hit-testing and the
   circuit needs per-wire labelling, which is most of what such a library
@@ -959,28 +975,27 @@ impossible to break during a semester.
 - **No state-management library** — a single reducer over `State` (§4),
   since every mutation is one of a dozen named actions.
 
-Module layout:
+Module layout, as built:
 
-    src/
-      core/           # no DOM, fully unit-testable
-        ast.ts        # Node, paths, subtree get/replace, cost
-        parse.ts      # tolerant parser (§5.4)
-        render.ts     # AST -> token tree with paths (§5.1)
-        mask.ts       # eval to mask, per-node eval for tracing
-        rules.ts      # Appendix B as data + matcher (§6)
-        minimize.ts   # DP / Quine-McCluskey + A* search (§7)
-        synth.ts      # mask -> expression (§8.2)
-      view/
-        Venn.tsx      # region paths, shading, clicks
-        TruthTable.tsx
-        Circuit.tsx   # layout + wire labels
-        Expression.tsx
-        RulePane.tsx
-      state/          # reducer, URL encode/decode
-      notation.ts     # the §10 glyph table, single source
+    docs/
+      index.html
+      style.css       # every colour defined once, at the top
+      js/
+        core.js       # AST, masks, cost, paths, selections
+        text.js       # glyph table (§10), parser (§5.4), rendering
+        rules.js      # Appendix B as data + matcher (§6)
+        minimize.js   # stage 1 DP + stage 2 search (§7)
+        venn.js       # clip-path regions, analytic hit testing (§8)
+        truthtable.js # gate columns (§9.1)
+        circuit.js    # binarised layout + wire labels (§9.2, §9.3)
+        dom.js        # el() and svg() helpers
+        app.js        # state, expression pane, algebra rail
+        tests.js      # core suite      -> test.html
+        uitests.js    # interaction suite -> uitest.html
 
-`core/` must not import from `view/`. The glyph table lives in exactly
-one file so that adding a notation option cannot half-land.
+`core.js`, `text.js`, `rules.js` and `minimize.js` touch no DOM and are
+tested directly. The glyph table lives in exactly one file so that
+adding a notation option cannot half-land.
 
 A note on language, since the rest of this toolbox is Python: doing this
 in Python would mean either a Flask backend (wrong — adds latency to

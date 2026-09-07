@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>tests</title>
+<h1>Boolean Algebra Explorer — core tests</h1>
+<pre id="out">running…</pre>
+<script>
+window.addEventListener('error', (e) => {
+  document.getElementById('out').textContent =
+    'RESULT pass=0 fail=1\nUNCAUGHT ' + (e.message || e.error) +
+    '\n  at ' + (e.filename || '?') + ':' + e.lineno + ':' + e.colno +
+    '\n' + ((e.error && e.error.stack) || '');
+  document.title = 'UNCAUGHT';
+});
+window.addEventListener('unhandledrejection', (e) => {
+  document.getElementById('out').textContent = 'RESULT pass=0 fail=1\nREJECT ' + e.reason;
+});
+</script>
+<script type="module" src="./js/tests.js"></script>
