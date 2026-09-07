@@ -82,33 +82,73 @@ along with the rest.
 
 ## 3. Screen layout
 
-Single page, three panes plus a header. No scrolling of the whole page on
-a laptop screen; panes scroll internally.
+Single page: a header, a **viewer band** across the top, the expression
+pane beneath it, and the algebra pane as a right rail. No whole-page
+scrolling on a laptop; panes scroll internally.
 
     ┌──────────────────────────────────────────────────────────────┐
     │  Boolean Algebra Explorer      [ SETS | LOGIC ]   vars: 2 3 4│
-    ├────────────────────────────────────┬─────────────────────────┤
-    │  VIEWER                            │  ALGEBRA                │
-    │                                    │                         │
-    │  sets:  Venn diagram, per-region   │  Associative            │
-    │         shading, regions clickable │  Double Negation        │
-    │                                    │  DeMorgan's        [x2] │
-    │  logic: truth table (all 2^n rows) │  Distributive      [x2] │
-    │         + circuit for current line │  Absorption        [x2] │
-    │         row hover traces the wires │  Complement        [x2] │
-    │                                    │  Idempotent        [x2] │
-    ├────────────────────────────────────┤  Identity          [x2] │
-    │  EXPRESSION                        │  Domination        [x2] │
-    │                                    │  Commutative*      [x2] │
-    │    (A ∪ B)^C                       │                         │
-    │  = A^C ∩ B^C     DeMorgan's        │  [ Simplify ]           │
-    │  = ...                             │  [ Reset ] [ Share ]    │
-    └────────────────────────────────────┴─────────────────────────┘
+    ├─────────────────────┬──────────────────┬─────────────────────┤
+    │  TRUTH TABLE        │  CIRCUIT         │  ALGEBRA            │
+    │  A B C │ ¬C │ out   │                  │  Associative     ⓘ  │
+    │  0 0 0 │  1 │  0    │    ─┤&  ┐        │  Double Negation ⓘ  │
+    │  0 0 1 │  0 │  1  ←─┼──── └── │≥1──    │  DeMorgan's   [x2]ⓘ │
+    │  0 1 0 │  1 │  0    │         │        │  Distributive [x2]ⓘ │
+    │  ...                │                  │  Absorption   [x2]ⓘ │
+    │                     │                  │  Complement   [x2]ⓘ │
+    ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
+    │  EXPRESSION                            │  Identity     [x2]ⓘ │
+    │                                        │  Domination   [x2]ⓘ │
+    │    (A ∧ B) ∨ ¬C                        │  Commutative* [x2]ⓘ │
+    │  = ¬(A ∧ B) ∧ C          DeMorgan's    │                     │
+    │  = ...                                 │  [ Simplify ]       │
+    │                                        │  [ hint ▾ ]         │
+    │  start from: [ (A ^ B) v ~C          ] │  [ Reset ] [ Share ] │
+    └────────────────────────────────────────┴─────────────────────┘
+
+**Sets mode uses the same skeleton**, with the Venn diagram occupying
+the whole viewer band in place of the truth-table/circuit pair. Toggling
+mode therefore never reflows the page — only the band's contents and the
+glyphs change, which is what makes the toggle read as a change of costume
+rather than a change of tool (§2).
 
 The `[ SETS | LOGIC ]` toggle is the only mode control and sits top
-centre. Variable count is a small segmented control beside it.
+centre. Variable count is a small segmented control beside it; `4` is
+available in logic mode only (§12).
 
-`*` Commutative is not on the handout; see §8.2.
+`ⓘ` opens the law's own demonstration (§6.3). It is a separate hit
+target from the rule row itself, so a demo can never be triggered by a
+misplaced click meant to apply a rule.
+
+`*` Commutative is not on the handout; see §18, item 1.
+
+### 3.1 First load
+
+With no link parameters the tool opens **empty**: an unshaded Venn in
+sets mode, an all-zero output column in logic mode, and no derivation.
+The prompt is to click. A student's first action is therefore shading a
+region and watching an expression appear, which teaches the mask idea
+(§2) before any algebra shows up.
+
+Alongside the empty state sits an **examples menu** — a short list of
+deep links (§16.3) chosen so that clicking through them exercises every
+mode of the system:
+
+| example | mode | what it demonstrates |
+|---|---|---|
+| `(A ∪ B)^C` | sets | shading, selection, and a DeMorgan step that leaves the diagram unchanged |
+| `A ∩ (A ∪ B)` | sets | one Absorption step collapsing a big expression to nothing |
+| `(A ∪ B) − C` | sets | difference sugar and the Definition step that unlocks it (§8.3) |
+| `¬((A ∧ B) ∨ ¬C)` | logic | truth table, circuit, and row-hover wire tracing |
+| `(C∧B) ∨ (¬C∧B) ∨ (A∧¬B)` | logic | the hint ladder, and the circuit shrinking to `A ∨ B` |
+| — | sets | the empty state itself: build an expression by shading |
+
+The last four are lifted from `circuit01.tex`, `circuit04.tex`, and
+`operations_venn_color01.tex`, so a student who has met them on a
+problem set meets them again here.
+
+The menu is a launcher, not a tutorial: each entry loads the expression
+and gets out of the way. It stays reachable from the header afterwards.
 
 ---
 
@@ -189,6 +229,7 @@ buckets look similar on screen.
 | toggle SETS/LOGIC | keep | keep | keep |
 | change notation | keep | keep | keep |
 | select a subtree | keep | keep | set |
+| open/close a law demo (§6.3) | keep | keep | keep |
 | apply a rule | keep | append a line | follow the rewrite |
 | Simplify | keep | append steps | clear |
 | undo / redo | per history | per history | per history |
@@ -412,6 +453,49 @@ The viewer does not move. That is the point.
 Rule clicks and Simplify are the only sources of derivation lines
 (§5.3), so every line on screen is a correct, singly-labelled
 application of a named law.
+
+### 6.3 Demonstrating a law on its own
+
+Each rule row carries an `ⓘ` affordance that shows the law by itself,
+independent of whatever the student is working on: both sides of the
+identity, in generic variables, rendered in the current mode.
+
+    DeMorgan's Law
+
+      (A ∪ B)^C        =        A^C ∩ B^C
+      ┌────────┐                ┌────────┐
+      │▓▓▓▓▓▓▓▓│                │▓▓▓▓▓▓▓▓│
+      │▓▓◯──◯▓▓│                │▓▓◯──◯▓▓│
+      │▓▓▓▓▓▓▓▓│                │▓▓▓▓▓▓▓▓│
+      └────────┘                └────────┘
+              the same 5 regions
+
+    [ try it on my expression ]        [ dismiss ]
+
+In logic mode the two Venns become two truth-table output columns, which
+are visibly identical row for row. Either way the demonstration *is* the
+mask equality (§2) — the same machinery, shown directly instead of
+applied.
+
+**The demo cannot cost a student their work.** It is strictly
+non-destructive:
+
+- it opens as an overlay with **its own** miniature viewers on generic
+  variables; it never reads or writes `lines`, `selection`, or the mask;
+- `ⓘ` is a separate hit target from the rule row, so a click aimed at
+  applying a rule can never trigger a demo, and vice versa;
+- `Esc`, click-away, or `dismiss` restores the screen exactly;
+- the one action inside it that does touch state,
+  `try it on my expression`, is an explicit labelled button, is only
+  enabled when the law actually applies to the current selection, and
+  appends a normal undoable line.
+
+This generalises to an invariant worth holding to: **no click in the
+algebra pane is destructive.** Rules only ever append, appends are
+undoable, and demos change nothing. The only actions that can discard a
+derivation are the four in §4.1, each of which warns on first use. A
+student mid-problem can click anything in the right rail to find out
+what it does.
 
 ---
 
@@ -746,14 +830,19 @@ appear.
 ## 12. Variable count
 
 `n = 2` and `n = 3` are supported in both modes and are the default
-(`n = 3`). `n = 4` is supported in **logic mode only** in P0: the truth
-table is 16 rows and the circuit is unaffected, but a faithful 4-set
-Venn needs four ellipses, which is hard to read and hard to click.
+(`n = 3`). `n = 4` is supported in **logic mode only**: a 16-row truth
+table and a deeper circuit cost nothing, but a faithful 4-set Venn needs
+four ellipses, which is hard to read and fiddly to click.
 
-Switching to sets mode while `n = 4` either offers the 4-ellipse Venn
-(if P2 has landed) or prompts to drop to `n = 3`. Changing `n` discards
-the derivation and re-seeds from the truncated/extended mask, with the
-same notice as §8.2.
+**The four-ellipse Venn is not built, at any phase.** Switching to sets
+mode while `n = 4` prompts to drop to `n = 3`, and the `4` control is
+disabled in sets mode. Changing `n` discards the derivation and re-seeds
+from the truncated/extended mask, with the same notice as §8.2.
+
+One consequence: minimality is provable only for `n ≤ 3` (§7), and sets
+mode never exceeds `n = 3`, so every claim the tool makes about a
+diagram being minimal is a proved one. Only `n = 4` logic mode falls
+back to "minimal form found".
 
 ---
 
@@ -764,17 +853,19 @@ drag selection with snapping over subtrees and chain runs (§5.2), Venn
 viewer with clickable regions (`n = 2, 3`), truth table with clickable
 outputs and gate columns, mode toggle with glyph swap, the Appendix B
 rule table with applicability dimming, derivation lines with rule
-labels, mask assertion. This alone is a usable teaching tool.
+labels, mask assertion, and the empty landing state (§3.1). This alone
+is a usable teaching tool.
 
 **P1 — the reasons to come back.** Circuit rendering with left-assoc
 binarisation, row-hover wire tracing, Simplify with graduated hints
 (§7.1), difference/symmetric-difference sugar (§8.3), URL state and deep
-links (§16.3), undo/redo, figure export (§16.1), rule-hover preview,
-keyboard navigation, `start from sum of minterms`.
+links (§16.3), undo/redo, figure export (§16.1), the law demos and the
+examples menu they populate (§6.3, §3.1), keyboard navigation,
+`start from sum of minterms`.
 
-**P2 — polish and reach.** LaTeX emission (§16.2), 4-set Venn (four
-ellipses), animated gate removal, `view=viewer` embed mode, printable
-derivation, `hide negation columns`.
+**P2 — polish and reach.** LaTeX emission (§16.2), animated gate
+removal, `view=viewer` embed mode, printable derivation, `hide negation
+columns`.
 
 Circuit and hover tracing are P1 rather than P0 only because the Venn/
 truth-table loop is what makes the tool teach; they are the second thing
@@ -1034,24 +1125,45 @@ guess.
    difference from algebra problems while the Venn problems use it
    freely.
 
-9. **The tool is also an authoring aid** (§16): figure export, LaTeX
+9. **One layout for both modes** (§3): a viewer band on top, expression
+   beneath, algebra as a right rail. In logic mode the band splits into
+   truth table and circuit, which must be visible together because row
+   hover drives the wire labels (§9.3) — so they cannot be tabs. Sets
+   mode gives the whole band to the Venn, so toggling never reflows the
+   page.
+
+10. **Laws can be demonstrated on their own** (§6.3), triggered by a
+    hit target separate from the rule row, in a non-destructive overlay
+    with its own viewers. Per instruction, with the constraint that an
+    errant click must not be able to cost a student their work — which
+    generalised to the invariant that nothing in the algebra pane is
+    destructive.
+
+11. **Empty on first load, with an examples menu** (§3.1). Per
+    instruction: the student's first act is clicking a region and
+    watching an expression appear, and the menu's entries are chosen to
+    exercise every mode of the system rather than to teach a syllabus.
+
+12. **`n = 4` is logic-mode only** (§12), per instruction. No
+    four-ellipse Venn is built. Minimality is consequently provable only
+    for `n ≤ 3` (§7), which is where sets mode lives anyway.
+
+13. **The tool is also an authoring aid** (§16): figure export, LaTeX
    emission, and instructor deep links, per instruction.
 
-10. **Truth tables show intermediate gate columns** (§9.1). Evidence:
+14. **Truth tables show intermediate gate columns** (§9.1). Evidence:
    `circuit04.tex`'s solution table has one column per gate.
 
-11. **Gates are `∧ ∨ ¬` only** (§9.2). Evidence: every `circuit*.tex`
+15. **Gates are `∧ ∨ ¬` only** (§9.2). Evidence: every `circuit*.tex`
    asks for `Y` in terms of `∧, ∨, ¬`; no NAND, NOR, or XOR appears.
 
-12. **Row order is `000, 001, 010, ...` with the first variable as MSB**
+16. **Row order is `000, 001, 010, ...` with the first variable as MSB**
     (§2.1). Evidence: `circuit04.tex`'s solution table.
 
 Still open, with a default in place so nothing is blocked:
 
 - **`=` vs `≡`.** Logic problems use both. Defaulted to `=`, with `≡`
   as a notation option.
-- **`n = 4` in sets mode.** Deferred to P2 (§12).
-- **Provable minimality at `n = 4`.** Not claimed (§7).
 - **Whether to flag the handout's Associative entry.** The tool presents
   Associative as assumed rather than applied (§5.2.2), which is a
   defensible reading of flat notation but differs from
