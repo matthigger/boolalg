@@ -1,0 +1,11 @@
+--- a/logic/circuit04.tex	2026-09-07 14:27:52.014701003 -0400
++++ b/logic/circuit04.tex	2026-09-07 14:27:52.032354601 -0400
+@@ -80,7 +80,7 @@
+ 			=& \left[B \land (C \lor \lnot C)\right] \lor (A \land \lnot B) \quad \text{(Distributive Law)} \\
+ 			=& \left[B \land T\right] \lor (A \land \lnot B) \quad \text{(Complement Law)} \\
+ 			=& B \lor (A \land \lnot B) \quad \text{(Identity Law)} \\
+-			=& (A \lor B) \land (C \lor \lnot C) \quad \text{(Distributive Law)} \\
++			=& (A \lor B) \land (B \lor \lnot B) \quad \text{(Distributive Law)} \\
+ 			=& (A \lor B) \land T \quad \text{(Complement Law)}\\
+ 			=& (A \lor B) \quad \text{(Identity Law)}\\
+ \end{align*}	      

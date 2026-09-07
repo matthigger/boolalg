@@ -9,6 +9,12 @@ identity is visibly a rewrite that does not change the picture.
 - **reference/** — the CS1800 `logic_set_identities` handout (PDF +
   ODT source) that the rule set is taken from; transcribed in
   SPEC.md Appendix A and encoded in Appendix B.
+- **proto/** — a Python prototype of the minimiser (SPEC.md section 7),
+  written to test its one real assumption before committing to it.
+  Results in [proto/FINDINGS.md](proto/FINDINGS.md); run with
+  `python3 run_experiment.py`.
+- **patches/** — fixes for two errors the prototype found in
+  `CS1800/problem_repo`. Not applied.
 
 Status: specification only, nothing implemented. Section 18 records
 every design decision with the evidence behind it — mostly the course's

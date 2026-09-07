@@ -1,0 +1,11 @@
+--- a/logic/boolean_formula_derivation_vip.tex	2026-09-07 14:27:52.014724663 -0400
++++ b/logic/boolean_formula_derivation_vip.tex	2026-09-07 14:27:52.032436851 -0400
+@@ -12,7 +12,7 @@
+ 	$\equiv (\lnot p \lor \lnot q \lor p) \land (\lnot p \lor (\lnot q \lor q))$ (Associative) \\
+ 	$\equiv (\lnot p \lor \lnot q \lor p) \land (\lnot p \lor T)$ (Negation) \\
+ 	$\equiv (\lnot p \lor \lnot q \lor p) \land T$ (Domination) \\
+-	$\equiv ((\lnot p \lor p) \lor \lnot q) \land T$ (Associative) \\
++	$\equiv ((\lnot p \lor p) \lor \lnot q) \land T$ (Commutative) \\
+ 	$\equiv (T \lor \lnot q) \land T$ (Negation) \\
+ 	$\equiv T \land T$ (Domination) \\
+ 	$\equiv T$

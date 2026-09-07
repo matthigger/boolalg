@@ -331,10 +331,12 @@ simply unnecessary.
 
 Note what this says about the course materials.
 `boolean_formula_derivation_vip` performs this exact move and labels it
-`(Associative)`, then needs a second `(Associative)` later. In flat
-notation neither line is doing associative work — the work is
-commutativity both times. The tool's version above is shorter and names
-the law that actually applies.
+`(Associative)`. That file has two such lines, and they are not alike:
+the first only re-brackets (`(¬p ∨ ¬q) ∨ p` to `¬p ∨ ¬q ∨ p`) and is
+correctly labelled, while the second reorders terms
+(`¬p ∨ ¬q ∨ p` to `(¬p ∨ p) ∨ ¬q`) and is commutativity wearing the
+wrong name. In flat notation the first vanishes entirely and the second
+is the single `Commutative*` step above.
 
 ### 5.2.2 What is left for Associative
 
@@ -535,20 +537,23 @@ searching for a pretty path to it:
   a greedy factoring pass. Report the result as "minimal form found",
   not "provably minimal".
 
-**Stage 2 — a derivation.** Best-first (A*) search over Appendix A
+**Stage 2 — a derivation.** Best-first (A*) search over Appendix B
 rewrites from the current AST, cost-so-far = steps, heuristic =
-`ops(current) − targetCost`, with contracting rewrites preferred and
-expanding rewrites allowed (distribution often has to go up before it
-comes down). Caps: 20 000 expanded nodes, 40 steps, 2 s wall clock.
+`ops(current) − targetCost`. Caps: 20 000 expanded nodes, 40 steps, 2 s
+wall clock.
+
+**Expanding Distributive must be enabled.** An expression often has to
+grow before it can shrink, and this is the one expanding direction that
+matters. Contracting rules alone are not enough — see §7.2. The other
+expanding directions in Appendix B (introducing a double negation or an
+idempotent duplicate) are offered to students but excluded from the
+search, where they only inflate the branching factor.
 
 Outcomes:
 - **target reached** — append every step, each labelled.
 - **capped out** — append the best path found, then a final line showing
   the stage-1 witness marked `minimal form (derivation not found)`. Never
   silently present a non-minimal result as minimal.
-
-Simplify is disabled when the line is already at target cost, with the
-button captioned `already minimal`.
 
 ### 7.1 Hints, not answers
 
@@ -579,6 +584,55 @@ If the student applies the hinted rule themselves rather than pressing
 has no notion of a wrong step (§5.3).
 
 ---
+
+### 7.2 What the prototype measured
+
+`proto/` implements both stages and runs them over the thirteen
+simplification problems in `problem_repo` plus 200 random expressions,
+to test the assumption above rather than trust it. Full write-up in
+`proto/FINDINGS.md`; the results that shaped this section:
+
+| rule set | course problems | random |
+|---|---|---|
+| contracting only | 10 / 13 | 188 / 200 |
+| + expanding Distributive | **13 / 13** | **200 / 200** |
+| the same, DeMorgan restricted to 2 terms | 13 / 13 | 200 / 200 |
+
+So the design works, and it works cheaply: a mean of 2.8 steps and
+**5 to 7 expanded nodes** per expression, under a millisecond each. The
+caps above are three orders of magnitude larger than anything measured;
+they exist to bound pathological input, not to be approached. The
+`capped out` branch should be considered close to unreachable at
+`n ≤ 3`, which is where sets mode lives (§12).
+
+Two further findings carried into this spec:
+
+- **DeMorgan can stay binary.** Restricting it to two terms at a time,
+  faithful to the handout and to one-law-per-line (§6.2), costs nothing
+  in reachability — only a couple of extra expanded nodes. There is no
+  need for a k-ary form that would rewrite a whole chain in one step.
+- **Stage 1 is instant at `n = 3`** — 256 masks in 23 ms of unoptimised
+  Python, so trivial in the browser. At `n = 4` the same DP is ~65 000x
+  the pair work, which is minutes rather than milliseconds and rules it
+  out at runtime. If `n = 4` ever needs provable minimality, the answer
+  is a precomputed 65 536-entry cost table shipped as data, not a
+  faster search.
+
+Simplify is disabled when the line is already at target cost, with the
+button captioned `already minimal`.
+
+### 7.3 The mask assertion earns its keep
+
+Running §11's property test against the prototype's rule table found two
+real bugs before any of it reached a browser: an `Identity` rewrite that
+dropped a sibling term, and a `Distributive` factoring that produced an
+empty chain when every term of one operand was the common factor
+(`(x ∧ C) ∨ (C ∧ C)` factored on `C`). Both were caught the first time a
+random expression hit them, by exactly the check §9.4 specifies.
+
+The second one also fixed a definition: an emptied chain is the
+operator's identity, `T` for `∧` and `F` for `∨`, not a malformed node.
+
 
 ## 8. Sets mode
 
@@ -847,6 +901,11 @@ back to "minimal form found".
 ---
 
 ## 13. Phasing
+
+Target: usable by students for the next term's logic and sets unit
+(spring 2027, so roughly January). That is comfortable for P0 and P1 and
+rules out nothing below, but it does set the order — P0 must be
+independently useful, since it is what ships if the rest slips.
 
 **P0 — the core loop.** n-ary AST, tolerant parser, flat renderer, mask,
 drag selection with snapping over subtrees and chain runs (§5.2), Venn
@@ -1151,6 +1210,13 @@ guess.
 13. **The tool is also an authoring aid** (§16): figure export, LaTeX
    emission, and instructor deep links, per instruction.
 
+17. **Two errors in the course materials are being corrected rather
+    than accommodated**, per instruction: the mislabelled `Associative`
+    step in `boolean_formula_derivation_vip` and a typo in
+    `circuit04.tex`'s solution (§7.2, `proto/FINDINGS.md`). The tool
+    therefore names the law that actually applies and stays silent about
+    the discrepancy. Patches are prepared in `patches/`.
+
 14. **Truth tables show intermediate gate columns** (§9.1). Evidence:
    `circuit04.tex`'s solution table has one column per gate.
 
@@ -1163,14 +1229,7 @@ guess.
 Still open, with a default in place so nothing is blocked:
 
 - **`=` vs `≡`.** Logic problems use both. Defaulted to `=`, with `≡`
-  as a notation option.
-- **Whether to flag the handout's Associative entry.** The tool presents
-  Associative as assumed rather than applied (§5.2.2), which is a
-  defensible reading of flat notation but differs from
-  `boolean_formula_derivation_vip`, where two lines are labelled
-  `(Associative)` for moves that are really commutativity. If those
-  solutions are staying as written, the explainer should probably say so
-  explicitly rather than leave a student to notice the mismatch.
+  as a notation option. This is the only item still open.
 
 ---
 
