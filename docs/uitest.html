@@ -20,7 +20,9 @@
       <div id="simpNote"></div><button id="reset"></button>
       <button id="share"></button></div></aside>
 </main>
-<div id="overlay" hidden></div><div id="toast" hidden></div>
+<!-- Same classes as index.html: the overlay's own CSS is under test. -->
+<div id="overlay" class="overlay" hidden></div>
+<div id="toast" class="toast" hidden></div>
 <pre id="out" style="padding:12px;font-size:12px">running…</pre>
 <script>
 window.addEventListener('error', (e) => {

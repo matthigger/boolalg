@@ -147,6 +147,45 @@ setTimeout(() => {
         '¬A ∧ ¬B');
   }
 
+  /* -- a real drag, through the DOM. The handlers paint the spans as
+     the mouse moves and then call render(), which rebuilds them, so
+     these check the highlight is still there afterwards -- and that
+     nothing invisible is sitting on top eating the events. -- */
+  B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+  {
+    const span = (p) => [...document.querySelectorAll('#lines .dline.active .nd')]
+      .find((n) => n.dataset.path === JSON.stringify(p));
+    const fire = (n, t) => n.dispatchEvent(
+      new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+    const lit = () => [...document.querySelectorAll('#lines .nd.sel')]
+      .map((n) => n.textContent).join(' | ');
+
+    fire(span([0]), 'mousedown');
+    fire(span([1]), 'mousemove');
+    fire(span([1]), 'mouseup');
+    ok('a drag records the run', S.sel && S.sel.from === 0 && S.sel.to === 2,
+       JSON.stringify(S.sel));
+    eqv('and the highlight survives the render', lit(),
+        '(C ∧ B) | (¬C ∧ B)');
+    ok('the rail narrowed to the selection',
+       !B.available().has('Absorption'));
+
+    // Overshooting the expression is the common case, not an error.
+    fire(span([1]), 'mousedown');
+    fire(span([2]), 'mousemove');
+    document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    ok('a release off the expression still commits',
+       S.sel && S.sel.from === 1 && S.sel.to === 3, JSON.stringify(S.sel));
+    eqv('with the run it was dragged over', lit(), '(¬C ∧ B) | (A ∧ ¬B)');
+
+    const o = document.getElementById('overlay');
+    eqv('a hidden overlay is really gone', getComputedStyle(o).display, 'none');
+    const r = span([0]).getBoundingClientRect();
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    ok('the expression is what the mouse hits',
+       !!(hit && hit.closest('.nd')), hit ? `hit ${hit.id || hit.className}` : 'hit nothing');
+  }
+
   /* -- the DOM actually rendered -- */
   B.load('(A & B) | ~C', 'logic');
   ok('expression spans carry paths',

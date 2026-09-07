@@ -137,42 +137,52 @@ function renderLines() {
       ln.rule ? el('span', { class: 'rule', text: label(ln.rule) }) : null,
     ]);
     host.appendChild(row);
-    if (i === S.selectedLine) wireSelection(exprBox, ln.expr);
+    if (i === S.selectedLine) {
+      wireSelection(exprBox, ln.expr);
+      // Every render rebuilds these spans, so the live selection has to
+      // be repainted here -- the drag handlers only ever marked the DOM
+      // they were dragged over, which the render then threw away.
+      markSel(exprBox, ln.expr, S.sel, 'sel');
+    }
     if (ln.sel) markSel(exprBox, ln.expr, ln.sel, 'span');
   });
 }
 
 function wireSelection(host, expr) {
-  let anchor = null, moved = false;
+  let anchor = null, last = null;
   const pathAt = (t) => {
-    const n = t.closest ? t.closest('.nd') : null;
+    const n = t && t.closest ? t.closest('.nd') : null;
     return n ? JSON.parse(n.dataset.path) : null;
   };
-  host.addEventListener('mousedown', (ev) => {
-    anchor = pathAt(ev.target); moved = false;
-    if (anchor) ev.preventDefault();
-  });
-  host.addEventListener('mousemove', (ev) => {
-    if (!anchor) {
-      const p = pathAt(ev.target);
-      markSel(host, expr, p ? { path: p, from: null, to: null } : null, 'hov');
-      return;
-    }
-    const p = pathAt(ev.target);
-    if (!p) return;
-    moved = true;
-    markSel(host, expr, unify(expr, anchor, p), 'sel');
-  });
-  host.addEventListener('mouseleave', () => markSel(host, expr, null, 'hov'));
-  const finish = (ev) => {
+  function finish(ev) {
     if (!anchor) return;
-    const p = pathAt(ev.target) || anchor;
-    S.sel = unify(expr, anchor, p);
+    // Released off the expression: fall back to the last term the drag
+    // was actually over, so overshooting does not shrink the selection.
+    S.sel = unify(expr, anchor, pathAt(ev.target) || last || anchor);
     anchor = null;
     S.hint = 0;
     render();
-  };
-  host.addEventListener('mouseup', finish);
+  }
+  host.addEventListener('mousedown', (ev) => {
+    anchor = pathAt(ev.target);
+    last = anchor;
+    if (!anchor) return;
+    ev.preventDefault();
+    // The release often lands outside the expression, so catch it on the
+    // window rather than losing the drag.
+    window.addEventListener('mouseup', finish, { once: true });
+  });
+  host.addEventListener('mousemove', (ev) => {
+    const p = pathAt(ev.target);
+    if (!anchor) {
+      markSel(host, expr, p ? { path: p, from: null, to: null } : null, 'hov');
+      return;
+    }
+    if (!p) return;
+    last = p;
+    markSel(host, expr, unify(expr, anchor, p), 'sel');
+  });
+  host.addEventListener('mouseleave', () => markSel(host, expr, null, 'hov'));
 }
 
 /* ---- viewer ------------------------------------------------------- */
