@@ -877,8 +877,35 @@ Both suites run in a headless browser (`chromium --headless --dump-dom`
 over a local static server) and print a machine-readable `RESULT
 pass=N fail=N` line, so they need no test runner and no Node.
 
-Interaction tests drive the live app through `window.BAE` rather than
-synthesising clicks, covering the five loops that are easy to break: toggle mode mid-derivation, click a region and confirm the
+**Test that the page can be clicked at all.** Driving the app by
+calling its functions cannot detect that something is covering the
+page. This was not hypothetical: a `.overlay { display: flex }` rule
+beat the UA stylesheet's `[hidden] { display: none }`, so the modal
+backdrop sat over the whole viewport at `z-index: 20`, tinting
+everything grey and swallowing every click, while every test still
+passed. So the suite also:
+
+- hit-tests each key control with `document.elementFromPoint` at its
+  centre and asserts the element found is that control or a descendant
+  — nothing may cover a rule button, the mode toggle, the expression
+  input, the viewer, or a term of the expression;
+- dispatches **genuine** clicks on a rule button, the mode toggle, a law
+  info button and a Venn region, and asserts the state moved;
+- asserts every overlay is `display: none` while hidden, and that a
+  visible toast is `pointer-events: none`.
+
+That last one was added because the first version of these tests found
+a second instance of the same class: the toast sat over the expression
+input and blocked it for as long as it showed.
+
+The interaction page is generated from `index.html` rather than
+hand-written, so the suite always exercises the markup that ships; its
+results go in a `text/plain` script element so the page under test keeps
+its real layout.
+
+Interaction tests otherwise drive the app through `window.BAE`,
+covering the five loops that are easy to break: toggle mode
+mid-derivation, click a region and confirm the
 derivation resets, apply DeMorgan's and confirm the shading is
 unchanged, hover a row and confirm every gate is labelled, and select a
 run of chain terms then apply a rule and confirm it rewrites only that
