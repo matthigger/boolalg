@@ -140,11 +140,10 @@ main {
 }
 .exports button.exp:hover { color: var(--accent);
   border-color: var(--accent); background: var(--accent-soft); }
-.exprbar { display: flex; align-items: center; margin-bottom: 8px;
-           min-height: 28px; gap: 10px; }
-.exprbar .barright { margin-left: auto; display: flex; align-items: center;
+.toolrow .barright { margin-left: auto; display: flex; align-items: center;
                      gap: 12px; }
-.exprbar .exports { margin-left: 0; gap: 6px; align-items: center; }
+.toolrow .exports { margin-left: 0; gap: 6px; align-items: center; }
+.toolrow #examplesBtn { padding: 5px 12px; font-size: 13px; }
 /* A two-state segment, in the view toggle's idiom: the step marks are a
    way of looking at the derivation, not a third thing to download. */
 .marks { display: flex; align-items: center; gap: 6px; }
@@ -276,9 +275,16 @@ svg.circuit { display: block; width: 100%; height: auto;
 /* Last, so a live selection always wins the background. */
 .expr .nd.sel { background: var(--sel-mid); box-shadow: 0 0 0 1px var(--sel); }
 
-.entry { display: flex; flex-direction: column; gap: 8px; margin-top: 12px;
-         padding-top: 10px; border-top: 1px dashed var(--line); }
+/* The input and its controls sit at the top of the pane: they are what
+   starts a derivation, and the derivation grows down from them. */
+.entry { display: flex; flex-direction: column; gap: 8px;
+         margin-bottom: 12px; padding-bottom: 10px;
+         border-bottom: 1px dashed var(--line); }
 .entryrow { display: flex; align-items: center; gap: 10px; }
+/* One row: the keys that build an expression, then the controls that do
+   something with the one already there. */
+.toolrow { display: flex; align-items: center; gap: 10px;
+           flex-wrap: wrap; }
 .entry label { font-size: 12px; color: var(--muted); }
 
 /* The operator pad: these glyphs are not on a keyboard, and the ones

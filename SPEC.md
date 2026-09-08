@@ -112,13 +112,13 @@ space is worth reclaiming for the derivation below it.
     │  ...                │                  │  Absorption   [x2]ⓘ │
     │                     │                  │  Complement   [x2]ⓘ │
     ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
-    │ [examples▾]   STEP MARKS[on|off] PNG TEX│  Identity     [x2]ⓘ │
-    │                                        │  Domination   [x2]ⓘ │
-    │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
+    │  start from: [ (A ^ B) v ~C          ] │  Identity     [x2]ⓘ │
+    │  ∧ ∨ ¬ − ⊕ ( ) T F  [get example]      │  Domination   [x2]ⓘ │
+    │             STEP MARKS[on|off] PNG TEX │  Commutative  [x2]ⓘ │
+    │  ────────────────────────────────────  │                     │
+    │    (A ∧ B) ∨ ¬C                        │  [ Simplify ]       │
     │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │
-    │  = ...                                 │  [ Simplify ]       │
-    │  ∧ ∨ ¬ − ⊕ ( ) T F                     │                     │
-    │  start from: [ (A ^ B) v ~C          ] │  [ Reset ] [ Share ] │
+    │  = ...                                 │  [ Reset ] [ Share ] │
     └────────────────────────────────────────┴─────────────────────┘
 
 **Sets mode uses the same skeleton**, with the Venn diagram occupying
@@ -132,14 +132,16 @@ sits beside the title, where it names what the viewer band is currently
 showing. There is no variable-count control: the expression says how
 many variables it has (§12).
 
-The expression pane carries its own strip: the examples menu (§3.1) at
-the left, and at the right a step-marks toggle and the export controls
-(§16). Step marks are deliberately a segment in the view toggle's idiom
-rather than a third pill beside PNG and TEX — they change how the
-derivation is drawn, they do not produce a file.
+The expression pane opens with the input that starts a derivation, and
+the derivation grows downward from it. Under the input sits one row of
+controls: the operator keys, `get example` (§3.1), and at the right a
+step-marks toggle and the export controls (§16). Step marks are
+deliberately a segment in the view toggle's idiom rather than a third
+pill beside PNG and TEX — they change how the derivation is drawn, they
+do not produce a file.
 
-Each operator glyph has a key below the derivation. None of them are on
-a keyboard, and the LaTeX spellings that are (§5.4) are only known to
+Every operator glyph has a key in that row. None of them are on a
+keyboard, and the LaTeX spellings that are (§5.4) are only known to
 students who already write LaTeX.
 
 `ⓘ` opens the law's own demonstration (§6.3). It is a separate hit
