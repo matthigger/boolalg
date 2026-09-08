@@ -301,8 +301,11 @@ button.ghost:disabled { color: var(--dim); }
 .exlist button:hover { background: var(--accent-soft); }
 .exlist .ex-e { font-size: 15px; }
 .exlist .ex-d { color: var(--muted); font-size: 12px; }
+/* pointer-events:none so a transient notice can never eat a click on
+   the input it sits over -- centred at the foot, it overlaps #src. */
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  pointer-events: none;
   background: var(--ink); color: var(--panel); padding: 8px 14px;
   border-radius: var(--radius);
   font-size: 13px; z-index: 30;

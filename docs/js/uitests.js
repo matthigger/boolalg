@@ -186,6 +186,21 @@ setTimeout(() => {
        !!(hit && hit.closest('.nd')), hit ? `hit ${hit.id || hit.className}` : 'hit nothing');
   }
 
+  /* -- a notice must not eat the control it covers (SPEC.md 11) -- */
+  {
+    const t = document.getElementById('toast');
+    t.textContent = 'editing the diagram replaces the derivation';
+    t.hidden = false;
+    eqv('a visible toast lets clicks through',
+        getComputedStyle(t).pointerEvents, 'none');
+    const inp = document.getElementById('src');
+    const r = inp.getBoundingClientRect();
+    const under = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    eqv('so the input under it is still what the mouse hits',
+        under && under.id, 'src');
+    t.hidden = true;
+  }
+
   /* -- each view draws its own things, and only its own -- */
   B.load('(A & B) | ~C', 'logic');
   ok('expression spans carry paths',
