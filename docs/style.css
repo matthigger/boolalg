@@ -15,6 +15,7 @@
   --sel: #12a05e;              /* the selection */
   --sel-soft: #12a05e1f;
   --sel-mid: #12a05e4d;
+  --accent-glow: #2d70b340;    /* the lift under an accent fill */
   --on: var(--accent);         /* a 1 on a wire: true, so blue */
   --off: #9ca3af;
   --focus: #f59e0b;
@@ -28,6 +29,9 @@
   --ink-soft: #55677f;         /* diagram strokes */
   --err: #b91c1c;
   --err-soft: #fbeaea;         /* undo hover */
+  --tag-mild: #4a9d5f;         /* example difficulty */
+  --tag-medium: #d98324;
+  --tag-spicy: #c0392b;
   --scrim: #24303f66;
   --shadow: 0 18px 50px #24303f26;
   --card: 0 1px 3px #24303f1a, 0 8px 24px #24303f0d;
@@ -36,6 +40,7 @@
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
           "Helvetica Neue", sans-serif;
   --app-max: 1600px;           /* wider than this and the app centres */
+  color-scheme: light;
 
   /* Derivation steps, cycled one per line. Set1-ish -- bright and a
      little pastel -- but deliberately missing Set1's green and blue:
@@ -48,6 +53,62 @@
   --step-5: #00a2ad;  --step-5-soft: #00a2ad26;   /* teal */
   --step-6: #a3691f;  --step-6-soft: #a3691f26;   /* brown */
   --step-7: #b59000;  --step-7-soft: #b5900026;   /* mustard */
+}
+
+/* The same palette after dark. Only the values move: every meaning
+   given above is preserved, so blue is still "true" and green is still
+   "the selection". Selected by data-theme on <html> (theme.js); with no
+   attribute the light values stand, and those are also the ones the
+   exports read (export.js). */
+:root[data-theme=dark] {
+  --bg: #131820;
+  --panel: #1b222d;
+  --ink: #e4e9f0;
+  --muted: #94a3b8;
+  --line: #303a49;
+  /* Light enough to read as text on a dark panel, which forces the text
+     drawn on an accent fill to go dark -- hence --on-accent below. One
+     accent cannot serve both roles on a dark ground. */
+  --accent: #6cb0ef;
+  --accent-soft: #6cb0ef26;
+  --accent-mid: #6cb0ef52;
+  --accent-glow: #6cb0ef3d;
+  --sel: #34d399;
+  --sel-soft: #34d39926;
+  --sel-mid: #34d39952;
+  --on: var(--accent);
+  --off: #64748b;
+  --focus: #fbbf24;
+  --on-accent: #10151c;
+  --panel-2: #232b38;
+  --active: #22314a;
+  --trace: #3a3018;
+  --trace-on: #574524;
+  --hintbg: #463716;
+  --dim: #5c6a7e;
+  --ink-soft: #a9b6c8;
+  --err: #f87171;
+  --err-soft: #3d1f1f;
+  --tag-mild: #6fc98a;
+  --tag-medium: #eba54f;
+  --tag-spicy: #ef7b6e;
+  --scrim: #05080ca8;
+  /* A dark card is lifted by being lighter than the field it sits on,
+     not by a tinted shadow; what is left of the shadow is depth, so it
+     is black. */
+  --shadow: 0 18px 50px #00000073;
+  --card: 0 1px 3px #0000005e, 0 8px 24px #00000042;
+
+  /* Lifted to clear the dark panel. Purple and brown are the two that
+     could not survive the move at their light values. */
+  --step-1: #ef5a4a;  --step-1-soft: #ef5a4a2e;
+  --step-2: #f59a2e;  --step-2-soft: #f59a2e2e;
+  --step-3: #c98ad6;  --step-3-soft: #c98ad62e;
+  --step-4: #f58ab8;  --step-4-soft: #f58ab82e;
+  --step-5: #35c6d1;  --step-5-soft: #35c6d12e;
+  --step-6: #cf9a4e;  --step-6-soft: #cf9a4e2e;
+  --step-7: #d4b32a;  --step-7-soft: #d4b32a2e;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 /* The `hidden` attribute is only a UA `display: none`, so any rule here
@@ -62,7 +123,7 @@ body {
 }
 
 /* ---- header ---- */
-/* Full-bleed white, but its contents line up with the capped main
+/* Full-bleed panel, but its contents line up with the capped main
    below rather than running off to the window edge. */
 .topbar { background: var(--panel); box-shadow: 0 1px 0 var(--line); }
 header {
@@ -88,11 +149,27 @@ header .modes { margin-left: 4px; }
 .seg button { padding: 6px 13px; }
 .modes button[aria-selected=true], .seg button[aria-selected=true] {
   background: var(--accent); color: var(--on-accent);
-  box-shadow: 0 2px 6px #2d70b340;
+  box-shadow: 0 2px 6px var(--accent-glow);
 }
 .modes button:disabled, .seg button:disabled {
   color: var(--dim); cursor: default;
 }
+
+/* The light/dark switch, pushed to the far end of the bar: it is a
+   preference about the page, not part of the work, and it is set once.
+   The icon is a half-filled disc rather than a sun or a moon -- it
+   names the choice instead of the state, so nothing has to be swapped
+   when the theme changes. */
+header .themebtn {
+  margin-left: auto; flex: none; padding: 0;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--panel); color: var(--muted); cursor: pointer;
+}
+header .themebtn:hover { color: var(--accent); border-color: var(--accent);
+                         background: var(--accent-soft); }
+header .themebtn svg { width: 16px; height: 16px; display: block; }
 
 /* ---- layout ---- */
 main {
@@ -345,7 +422,7 @@ button.primary, button.ghost {
 }
 button.primary { background: var(--accent); color: var(--on-accent);
                  border-color: var(--accent);
-                 box-shadow: 0 2px 8px #2d70b344; }
+                 box-shadow: 0 2px 8px var(--accent-glow); }
 button.primary:disabled { background: var(--panel-2); color: var(--dim);
                           border-color: var(--line); font-weight: 400;
                           box-shadow: none; }
@@ -416,9 +493,9 @@ button.ghost:disabled { color: var(--dim); }
   font-weight: 700; padding: 2px 9px; border-radius: 999px;
   color: var(--on-accent);
 }
-.extag.mild { background: #4a9d5f; }
-.extag.medium { background: #d98324; }
-.extag.spicy { background: #c0392b; }
+.extag.mild { background: var(--tag-mild); }
+.extag.medium { background: var(--tag-medium); }
+.extag.spicy { background: var(--tag-spicy); }
 .exwhy { font-size: 12px; color: var(--muted); }
 button.makeup {
   margin-left: auto; font: inherit; font-size: 12px; padding: 4px 12px;

@@ -102,7 +102,7 @@ tallest thing on the page and the least dense, so it is where vertical
 space is worth reclaiming for the derivation below it.
 
     ┌──────────────────────────────────────────────────────────────┐
-    │  Boolean Algebra Explorer  [ SETS | LOGIC | CIRCUIT ]         │
+    │  Boolean Algebra Explorer  [ SETS | LOGIC | CIRCUIT ]      ◐  │
     ├─────────────────────┬──────────────────┬─────────────────────┤
     │  TRUTH TABLE        │  CIRCUIT  PNG CSV│  ALGEBRA            │
     │  A B C │ ¬C │ out   │                  │  Associative     ⓘ  │
@@ -197,6 +197,38 @@ problem set meets them again here.
 
 The menu is a launcher, not a tutorial: each entry loads the expression
 and gets out of the way. It stays reachable from the header afterwards.
+
+### 3.2 Light and dark
+
+Both palettes are the same palette: the meanings of §8.1 hold in either,
+so blue is still "where this expression is true" and green is still "the
+part you selected". Only the values move, and they move in one place —
+the two blocks at the top of `style.css` — so a component cannot be
+themed and a sibling forgotten.
+
+Dark is not the light palette inverted. Two things had to change shape
+rather than lightness:
+
+- **The accent does two jobs.** It is text on a panel (a live wire, a
+  hover border) and it is a fill under text (the selected view, the
+  Simplify button). On white one blue does both; on a dark panel it has
+  to be light enough to read as text, which then makes white-on-accent
+  unreadable, so the text drawn on an accent fill goes dark instead.
+- **Two step colours could not survive the move.** The purple and the
+  brown of §5.3 are mid-dark by design, and against a dark panel they
+  stop being legible as text; both are lifted, hues kept.
+
+Which palette is in force follows the reader's system until they say
+otherwise. The switch is a single control at the far end of the header,
+away from the mode toggle: it is a preference about the page, set once,
+and not a way of looking at the expression. Its icon is a half-filled
+disc rather than a sun or a moon, so it names the choice and nothing has
+to be swapped when the theme changes.
+
+**Exports are always light** (§16.1). Work leaves the tool for a white
+page or a white slide, so the theme is not part of what a student hands
+in. Both raster paths take their colours from the live stylesheet, so
+both force the light palette for that read.
 
 ---
 
@@ -1197,6 +1229,7 @@ Module layout, as built:
         truthtable.js # gate columns (§9.1)
         circuit.js    # binarised layout + wire labels (§9.2, §9.3)
         dom.js        # el() and svg() helpers
+        theme.js      # light/dark, and remembering it (§3.2)
         app.js        # state, expression pane, algebra rail
         tests.js      # core suite      -> test.html
         uitests.js    # interaction suite -> uitest.html
@@ -1226,8 +1259,12 @@ because the tool is all interaction and no computation.
   and labelled for screen readers with its expression; shading is never
   the only channel (regions also carry an outline state and a tooltip);
   contrast meets WCAG AA; respects `prefers-reduced-motion`.
-- **No tracking, no cookies, no network requests after load.** State
-  lives in the URL only.
+- **No tracking, no cookies, no network requests after load.** Work
+  state lives in the URL only. The one thing kept in `localStorage` is
+  the theme (§3.2) — a preference about the page, deliberately not in
+  the URL, since a shared link should not repaint the recipient's
+  screen. A `file://` copy where the write throws still works; the
+  choice just does not outlive the tab.
 - **Offline** — works from a `file://` copy so it can be handed out.
 
 ---
@@ -1255,6 +1292,11 @@ with its computed styles inlined.
 
 The step marks (§5.3) are drawn in the exports exactly when they are
 shown on screen, the toggle driving both.
+
+Every export is light whatever the page is set to (§3.2). The canvas
+reads the step colours off the stylesheet and the circuit is
+serialised with its computed styles inlined, so both reads happen with
+the light palette forced.
 
 **Not built:** SVG output, the blank/filled and plain/traced variants
 below, and the `problem_repo` file-naming convention.
@@ -1479,6 +1521,13 @@ guess.
 
 16. **Row order is `000, 001, 010, ...` with the first variable as MSB**
     (§2.1). Evidence: `circuit04.tex`'s solution table.
+
+18. **The theme is the one piece of state outside the URL** (§3.2,
+    §15). A dark palette needs somewhere to remember a choice, and the
+    URL is the wrong place: a shared link carries the work, and should
+    not also repaint the recipient's screen. It sits in `localStorage`
+    instead, written only by a reader who overrode their system
+    setting. Exports stay light either way.
 
 Settled since:
 

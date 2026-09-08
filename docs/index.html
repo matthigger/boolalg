@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Boolean Algebra Explorer — CS1800</title>
+<!-- Before the stylesheet, so the page never paints the wrong palette
+     and then flips. Same rule as js/theme.js -- a stored choice, else
+     the system -- and the same key string; change one, change both. -->
+<script>
+(function () {
+  var v = null;
+  try { v = localStorage.getItem('ba-theme'); } catch (e) { /* file:// */ }
+  if (v !== 'dark' && v !== 'light') {
+    v = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.dataset.theme = v;
+})();
+</script>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -15,6 +28,14 @@
     <button data-mode="logic" role="tab">LOGIC</button>
     <button data-mode="circuit" role="tab">CIRCUIT</button>
   </div>
+  <button id="themeToggle" class="themebtn" type="button"
+          aria-label="dark mode" aria-pressed="false" title="dark mode">
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor"
+              stroke-width="1.5"/>
+      <path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/>
+    </svg>
+  </button>
 </header>
 </div>
 

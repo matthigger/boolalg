@@ -128,13 +128,32 @@ export function derivationTeX(lines, mode, letters, marks = null) {
   ].join('\n');
 }
 
-/* The step palette from style.css. Repeated here because a .tex file
-   leaves the page and cannot ask the stylesheet; the canvas reads the
-   live custom properties instead and only falls back to these. */
+/* The light step palette from style.css. Repeated here because a .tex
+   file leaves the page and cannot ask the stylesheet; the canvas reads
+   the custom properties instead and only falls back to these. */
 const STEP_HEX = ['E0301E', 'EF7D00', '9C4BA8', 'E8639F', '00A2AD',
                   'A3691F', 'B59000'];
 
 /* ---- png ---------------------------------------------------------- */
+
+/* Every export is light. Work leaves the tool for a white page or a
+   white slide, and both png paths already lay a white ground down under
+   it, so the reader's choice of theme is not part of what they take
+   away. Both paths take their colours off the live stylesheet, so the
+   light palette is forced for the read: style resolution is synchronous
+   and no frame is painted inside the call, so the page the reader is
+   looking at never flickers. */
+function inLightTheme(read) {
+  const root = document.documentElement;
+  const was = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', 'light');
+  try {
+    return read();
+  } finally {
+    if (was === null) root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', was);
+  }
+}
 
 const PAD = 10, ROW_H = 30, HEAD_H = 34, FONT = 15;
 
@@ -216,9 +235,14 @@ const D_PAD = 18, D_ROW = 34, D_FONT = 18, D_RULE = 12.5, D_GAP = 40;
 
 export function derivationPNG(lines, mode, letters, marks = null,
                               scale = 2) {
-  const css = getComputedStyle(document.documentElement);
-  const stepColour = (n) =>
-    (css.getPropertyValue(`--step-${n}`) || '#' + STEP_HEX[n - 1]).trim();
+  // Resolved once, up front: a live CSSStyleDeclaration read during
+  // the draw would see whatever theme was in force by then.
+  const steps = inLightTheme(() => {
+    const css = getComputedStyle(document.documentElement);
+    return STEP_HEX.map((hex, i) =>
+      (css.getPropertyValue(`--step-${i + 1}`) || '#' + hex).trim());
+  });
+  const stepColour = (n) => steps[n - 1];
 
   const c = document.createElement('canvas');
   const ctx = c.getContext('2d');
@@ -315,7 +339,8 @@ export function svgPNG(src, scale = 2) {
   const box = src.viewBox.baseVal;
   const w = box && box.width ? box.width : src.clientWidth;
   const h = box && box.height ? box.height : src.clientHeight;
-  const clone = inlineStyles(src, src.cloneNode(true));
+  const clone = inLightTheme(
+    () => inlineStyles(src, src.cloneNode(true)));
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('width', w);
   clone.setAttribute('height', h);

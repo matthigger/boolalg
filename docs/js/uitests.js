@@ -7,6 +7,7 @@ import { mask, cost, key, focus } from './core.js';
 import { parse, toText } from './text.js';
 import { GROUPS } from './rules.js';
 import * as Ex from './export.js';
+import * as Theme from './theme.js';
 
 const log = [];
 let pass = 0, fail = 0;
@@ -686,6 +687,50 @@ setTimeout(async () => {
     ok('with something actually drawn on it', ink > 100, `${ink} dark px`);
 
     B.S.mode = 'logic'; B.render();
+  }
+
+
+  /* -- the theme (SPEC.md 3.2): the page moves, the exports do not -- */
+  {
+    B.load('(A & B) | ~C', 'circuit');
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const panel = () =>
+      getComputedStyle(root).getPropertyValue('--panel').trim();
+    const step3 = () =>
+      getComputedStyle(root).getPropertyValue('--step-3').trim();
+
+    ok('the switch is on the bar', !!btn);
+    Theme.apply('light');
+    const lightPanel = panel(), lightStep = step3();
+
+    btn.click();
+    eqv('a click turns it dark', root.dataset.theme, 'dark');
+    eqv('and the button says so', btn.getAttribute('aria-pressed'), 'true');
+    ok('the panel colour moves', panel() !== lightPanel,
+       `${lightPanel} -> ${panel()}`);
+    ok('and so do the step colours', step3() !== lightStep,
+       `${lightStep} -> ${step3()}`);
+
+    // The circuit is drawn from the live stylesheet, so this is the
+    // export that a theme could leak into.
+    const g = document.querySelector('#viewer svg.circuit');
+    ok('the circuit is on the page', !!g);
+    if (g) {
+      const dark = await Ex.svgPNG(g, 1);
+      eqv('the theme survives an export', root.dataset.theme, 'dark');
+      Theme.apply('light');
+      const light = await Ex.svgPNG(g, 1);
+      eqv('and the png is the same either way',
+          dark.toDataURL(), light.toDataURL());
+    }
+
+    Theme.apply('dark');
+    btn.click();
+    eqv('a second click turns it back', root.dataset.theme, 'light');
+    eqv('and the button follows', btn.getAttribute('aria-pressed'), 'false');
+    eqv('the choice is remembered', Theme.current(), 'light');
+    ok('the palette is back where it started', panel() === lightPanel);
   }
 
   document.getElementById('out').textContent =
