@@ -11,6 +11,7 @@ import * as Venn from './venn.js';
 import * as TT from './truthtable.js';
 import * as Circuit from './circuit.js';
 import * as Ex from './export.js';
+import * as Theme from './theme.js';
 import { CATALOGUE, LEVELS, BLURB, makeOne } from './examples.js';
 
 /* ---- state -------------------------------------------------------- */
@@ -1181,6 +1182,7 @@ function renderOpPad() {
 /* ---- boot --------------------------------------------------------- */
 
 function boot() {
+  Theme.init();
   for (const b of document.querySelectorAll('#modeToggle button')) {
     b.onclick = () => {
       S.mode = b.dataset.mode;
