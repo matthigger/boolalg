@@ -43,6 +43,7 @@ export const CATALOGUE = {
   ],
   medium: [
     ['(A & B) | (A & ~B)', 'logic', 'the B cancels out entirely'],
+    ['~((C | ~A) & (A | C) & ~C)', 'logic', 'show this is always true'],
     ['(A u B) n (A u B^C)', 'sets', 'and here the B disappears too'],
     ['~(~B | ~C | A)', 'logic', 'one DeMorgan, then tidy up after it'],
     ['(B | A | C) & ~A', 'logic', 'distribute, then watch a term die'],
@@ -51,7 +52,7 @@ export const CATALOGUE = {
   ],
   spicy: [
     ['(C & B) | (~C & B) | (A & ~B)', 'logic', 'circuit04 — simplify it to A ∨ B'],
-    ['~((C | ~A) & (A | C) & ~C)', 'logic', 'show this is always true'],
+    ['(~~C & ~B & (B | A)) | ~~B', 'logic', 'the double negations are the easy part'],
     ['~(~B | (~A & B) | (C & B))', 'logic', 'one long DeMorgan and its fallout'],
     ['(A - B) u (B - A)', 'sets', 'symmetric difference, the long way round'],
     ['A ^ B', 'logic', 'exclusive or, unfolded by Definition'],

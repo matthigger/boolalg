@@ -25,9 +25,8 @@ import { toText } from './text.js';
 import { evalAt, isChain, key } from './core.js';
 
 const VAR_W = 42;       // px per variable column
-const WORK_BLOCK = 288; // px shared by however many working columns
-const OUT_W = 156;      // px for the output column, which carries the
-                        // whole expression and so needs the most room
+const WORK_BLOCK = 288; // px the wrapper reserves for working columns
+const OUT_W = 156;      // px the wrapper reserves for the output column
 const MAX_WORK = 6;
 
 /* Operator nodes in evaluation order, root last. */
@@ -65,17 +64,18 @@ export function render(host, opts) {
   // integer, and letting the browser round five fractional columns moved
   // the table by a pixel or three -- exactly the drift this is here to
   // stop.
-  const workW = cols.length ? Math.floor(WORK_BLOCK / cols.length) : 0;
-  const tableW = nv * VAR_W + workW * cols.length + OUT_W;
   const wrapW = nv * VAR_W + WORK_BLOCK + OUT_W;
-  // A law card shows a fixed pair of tables that never step, so none of
-  // the anti-drift sizing applies -- and reserving the working block
-  // there makes two tables too wide to sit side by side.
+  // Only the variable columns are pinned. A working column is sized by
+  // the expression in its head, because dividing a fixed block between
+  // however many there are wrapped those heads over two and three
+  // lines -- and a header is the one thing in the column that has to be
+  // read. The table may now outgrow the wrapper to the right; its left
+  // edge, which is what the reader is tracking, does not move.
   const group = compact ? null : el('colgroup', {}, [
     ...Array.from({ length: nv }, () =>
       el('col', { style: `width:${VAR_W}px` })),
-    ...cols.map(() => el('col', { style: `width:${workW}px` })),
-    el('col', { style: `width:${OUT_W}px` }),
+    ...cols.map(() => el('col')),
+    el('col'),
   ]);
 
   const label = (n) => toText(n, mode, letters);
@@ -131,7 +131,6 @@ export function render(host, opts) {
 
   const table = el('table', {
     class: 'tt' + (compact ? ' compact' : ''),
-    style: compact ? null : `width:${tableW}px`,
   }, [
     group,
     el('thead', {}, [head]),
@@ -139,6 +138,10 @@ export function render(host, opts) {
   ]);
   // The trace has to clear when the pointer leaves the table by any
   // route, including out through the header or the table's own margin.
+  // The wrapper keeps its constant width and stays centred: that is
+  // what holds the table's left edge, and so the variable columns,
+  // still as the working columns come and go. The table inside is free
+  // to run past its right edge.
   const wrap = el('div', { class: 'ttwrap',
     style: compact ? null : `width:${wrapW}px`,
     onmouseleave: () => onHoverRow?.(null) }, [table]);

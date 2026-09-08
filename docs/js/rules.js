@@ -48,6 +48,10 @@ export function rewritesOf(f) {
   if (f.k === 'not') {
     const inner = f.a;
     if (inner.k === 'not') add('Double Negation', inner.a);
+    // The complement of a constant. Nothing else in the table touches
+    // it, so a derivation reaching the empty set's complement had no
+    // move left and stopped one step short of the universe.
+    if (inner.k === 'const') add('Definition', cn(!inner.v));
     if (isChain(inner) && inner.ts.length === 2) {
       add("DeMorgan's", ch(dual(inner.k), inner.ts.map(nt)));
     }

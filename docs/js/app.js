@@ -793,11 +793,13 @@ const LAWS = {
     sets: 'Not really a law, but some operations (set difference, '
         + 'symmetric difference) are not easily manipulated '
         + 'algebraically. Applying their definition breaks one of these '
-        + 'operators into its pieces, which are more malleable.',
+        + 'operators into its pieces, which are more malleable. It '
+        + 'also settles a complemented constant: ∅ᶜ is U.',
     logic: 'Not really a law, but some operations (difference, '
          + 'exclusive or) are not easily manipulated algebraically. '
          + 'Applying their definition breaks one of these operators '
-         + 'into its pieces, which are more malleable.',
+         + 'into its pieces, which are more malleable. It also '
+         + 'settles a negated constant: ¬F is T.',
   },
 };
 
@@ -1034,9 +1036,6 @@ function render() {
   document.getElementById('simplify').disabled = !cur() || !!p?.done;
   document.getElementById('simplify').textContent =
     p?.done ? 'already minimal' : 'Simplify';
-  for (const id of ['hintExpr', 'hintRule', 'applyStep', 'runAll']) {
-    document.getElementById(id).disabled = !cur() || !!p?.done;
-  }
 }
 
 /* Widen or narrow the variable count. An expression whose variables
@@ -1145,10 +1144,6 @@ function boot() {
   }
   document.getElementById('examplesBtn').onclick = showExamples;
   document.getElementById('simplify').onclick = runAll;
-  document.getElementById('hintExpr').onclick = () => doHint(1);
-  document.getElementById('hintRule').onclick = () => doHint(2);
-  document.getElementById('applyStep').onclick = applyNext;
-  document.getElementById('runAll').onclick = runAll;
   document.getElementById('reset').onclick = () => {
     if (S.lines.length) { S.lines = [S.lines[0]]; S.selectedLine = 0; }
     S.sel = null; S.hint = 0; S.note = ''; render();

@@ -333,6 +333,27 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
   eqv('slug never comes back empty', slug('\u2229\u222a'), 'expression');
 }
 
+/* ---- 12b. a complemented constant is reducible --------------------- */
+{
+  // Other rules match a constant too, by expanding it; what matters is
+  // that a reducing one is now on offer.
+  const has = (n, want) => rewritesOf(n).some(
+    (r) => r.group === 'Definition' && eq(r.next, want));
+  ok('the empty set complement reduces to the universe',
+     has(nt(cn(false)), cn(true)));
+  ok('and the universe complement to the empty set',
+     has(nt(cn(true)), cn(false)));
+
+  // The case that stranded a derivation: A and not-A collapses to the
+  // empty set, whose complement then had no move left.
+  const e = parse('~(A & ~A)').expr;
+  const t = target(e, 2);
+  eqv('and its minimum is a constant', toText(t.node), 'T');
+  const d = derive(desugar(e), t.cost, 2, { maxNodes: 4000, maxSteps: 10 });
+  ok('so the derivation now finishes', d.ok && d.path.length > 0,
+     String(d.ok));
+}
+
 /* ---- 13. examples (SPEC.md section 3.1) ---------------------------- */
 {
   // The band an example is filed under is a claim about how much work

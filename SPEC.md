@@ -102,7 +102,7 @@ scrolling on a laptop; panes scroll internally.
     │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
     │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │
     │  = ...                                 │  [ Simplify ]       │
-    │  ∧ ∨ ¬ − ⊕ ( ) T F                     │  [ hint ▾ ]         │
+    │  ∧ ∨ ¬ − ⊕ ( ) T F                     │                     │
     │  start from: [ (A ^ B) v ~C          ] │  [ Reset ] [ Share ] │
     └────────────────────────────────────────┴─────────────────────┘
 
@@ -542,6 +542,23 @@ once per notation. "Every point is inside A or outside it" and "A is
 either true or false" are the same fact, but only one of them reads as
 an explanation to a student looking at a truth table.
 
+Not every law reads best as a pair. Where the point is that a column
+comes out constant, or matches one already present, the card shows **one
+table carrying the whole statement** instead of two to compare: Double
+Negation as `A, ¬A, ¬¬A`, Identity as `A, F ∨ A`. Laws with two forms
+show both, one demonstration under the other. In sets, where a diagram
+has no columns to set against each other, the single-table layout falls
+back to the pair.
+
+Associative is the exception in the other direction. Its two sides
+render identically — chains are n-ary, which is the law (§5.2.2) — so it
+shows the unbracketed chain that licenses, for each operator, with a
+warning that the two operations have to match.
+
+Demonstrations always read in `A, B, C`, never the letters the student
+happens to have loaded: a law is a claim about the shape of an identity,
+and borrowing left a three-variable law rendering its third as `?`.
+
 Both sides are clickable, in the same gesture as the derivation (§5.2):
 clicking any part re-points that side at the part, adding its column to
 the table or shading its region on the Venn. The law is a claim about
@@ -630,16 +647,22 @@ Dumping a finished derivation answers the question the student was
 supposed to answer. Simplify is therefore a **graduated reveal**, with
 each level exposing one more piece of the step the search already found:
 
-| control | reveals |
+| level | reveals |
 |---|---|
-| `hint: expression` | highlights the subtree or run the next step acts on, in the expression pane. Nothing is appended. |
-| `hint: algebra` | additionally highlights the rule to use, in the algebra pane. Nothing is appended. |
-| `apply` | performs that one step, appending its line. |
-| `run to end` | applies every remaining step. |
+| 1 | highlights the subtree or run the next step acts on, in the expression pane. Nothing is appended. |
+| 2 | additionally highlights the rule to use, in the algebra pane. Nothing is appended. |
+| apply | performs that one step, appending its line. |
+| run to end | applies every remaining step. |
 
 So a student can ask "where should I be looking?", try it themselves,
 and only then ask "which law?". The circuit shrinks a gate at a time
 rather than all at once (§9.2).
+
+**The ladder currently has no buttons.** The rail carries Simplify (which
+runs to the end), Reset and Share, and nothing else; the levels above are
+reachable only through the console driver, and are exercised by the
+tests. The machinery is kept because the rail was cut for room, not
+because the graduated reveal was decided against.
 
 Hints re-plan. The search (stage 2) runs from the *current* expression
 every time a hint is requested, so if the student applies a different
@@ -806,7 +829,27 @@ Columns still correspond to gates (§9.2) and to the wire labels on hover
 Intermediate columns are collapsible to a single output column
 (`show working` toggle, on by default for `n ≤ 3`), since a wide AST at
 `n = 4` will not fit. The selected subexpression's column, if any, is
-highlighted rather than added — it is already present.
+highlighted rather than added — it is already present. Highlighting
+matches by value, not by node identity, so a clicked `A` finds the `A`
+column the header was built from, and covers the whole column rather
+than its header alone.
+
+**Column widths.** Applying a law adds and removes working columns, and
+if the table were free to resize and centre itself, the `A`, `B`, `C`
+columns would slide sideways under the reader's eye at every step. So a
+wrapper of constant width is what gets centred, the table is
+left-aligned inside it, and the variable columns are pinned; the
+variables therefore start at the same x for the life of a derivation.
+
+Only the variable columns are pinned. A working column is as wide as the
+expression heading it, because a header is the one thing in the column
+that has to be read, and dividing a fixed block between however many
+columns there happen to be broke those headers over two and three lines.
+The table takes its natural width and may run past the wrapper's right
+edge; its left edge, which is what the reader is tracking, does not
+move. (A table left to size itself inside the fixed wrapper is squeezed
+to fit instead, which compresses the variable columns — the one thing
+the wrapper exists to prevent.)
 
 Clicking an output cell flips that bit, with the same reset semantics as
 §8.2 — the two viewers are the same editor on the same mask.
@@ -1473,6 +1516,8 @@ const RULES = [
   // sets mode only; the sole rules that may touch a sugar node (§8.3)
   { group: 'Definition*',     lhs: 'diff($1,$2)',       rhs: 'and($1,not($2))' },
   { group: 'Definition*',     lhs: 'symdiff($1,$2)',    rhs: 'or(diff($1,$2),diff($2,$1))' },
+  { group: 'Definition*',     lhs: 'not(F)',            rhs: 'T' },
+  { group: 'Definition*',     lhs: 'not(T)',            rhs: 'F' },
 ];
 ```
 

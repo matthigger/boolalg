@@ -179,25 +179,33 @@ svg.venn { display: block; margin: 0 auto; cursor: pointer;
    keeps A, B, C from sliding when a law adds or drops a working
    column. See the header comment in truthtable.js. */
 /* Fixed width and centred; the table sits at its left edge. */
-.ttwrap { margin: 0 auto; }
-table.tt { border-collapse: collapse; table-layout: fixed;
+/* fit-content is for the law cards, whose wrapper hugs its table; the
+   viewer overrides it inline with the constant width that pins the
+   variable columns. */
+.ttwrap { margin: 0 auto; width: fit-content; }
+/* max-content, not auto: inside the fixed-width wrapper an auto table
+   is squeezed to fit, which compressed the variable columns and moved
+   them -- the one thing the wrapper exists to prevent. It takes its
+   natural width and runs past the wrapper's right edge instead. */
+table.tt { border-collapse: collapse; table-layout: auto;
+           width: max-content;
            font-variant-numeric: tabular-nums;
            font-size: 16px; margin: 0; }
 table.tt th, table.tt td {
   border: 1px solid var(--line); padding: 7px 9px; text-align: center;
 }
-/* Headers wrap rather than ellipsise. A truncated header is a column
-   whose expression you cannot read, which is the only reason it is
-   there. */
+/* Headers stay on one line. A header broken over three lines is as
+   hard to read as a truncated one, and the column can simply be as wide
+   as the expression it is headed by. */
 table.tt th {
   font-weight: 700; background: var(--panel-2); font-size: 13.5px;
-  vertical-align: bottom; white-space: normal; overflow-wrap: anywhere;
+  vertical-align: bottom; white-space: nowrap;
   line-height: 1.3;
 }
 table.tt td { white-space: nowrap; }
 /* Sized by content, so a pair of law tables stays narrow enough to sit
    side by side. */
-table.tt.compact { table-layout: auto; font-size: 15px; }
+table.tt.compact { font-size: 15px; }
 table.tt.compact th, table.tt.compact td { padding: 5px 8px; }
 table.tt.compact th { white-space: nowrap; }
 table.tt th.var { font-size: 16px; }
