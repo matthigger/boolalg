@@ -13,7 +13,7 @@
    were free to resize and centre itself, every column -- including
    A, B, C -- would slide sideways under the reader's eye on each step.
 
-   So the *wrapper* is a constant width and is what gets centred, and
+   So the wrapper is a constant width and is what gets centred, and
    the table is left-aligned inside it. The variable columns therefore
    start at the same x for the life of a derivation, while the table's
    right edge is free to come in as the expression simplifies. Holding
@@ -52,12 +52,12 @@ export function markRow(host, r) {
 }
 
 export function render(host, opts) {
-  const { expr, nv, letters, mode, mask, selNode, showWork,
-          onToggle, onHoverRow, hoverRow } = opts;
+  const { expr, nv, letters, mode, mask, selNode, showWork, workCols,
+          compact, onToggle, onHoverRow, hoverRow } = opts;
   clear(host);
 
   const inner = gateNodes(expr).slice(0, -1);
-  const cols = showWork ? inner.slice(-MAX_WORK) : [];
+  const cols = workCols ?? (showWork ? inner.slice(-MAX_WORK) : []);
 
   // One <col> per column, so the widths above are what actually happens
   // rather than a suggestion the browser may ignore. Per-column width is
@@ -68,7 +68,10 @@ export function render(host, opts) {
   const workW = cols.length ? Math.floor(WORK_BLOCK / cols.length) : 0;
   const tableW = nv * VAR_W + workW * cols.length + OUT_W;
   const wrapW = nv * VAR_W + WORK_BLOCK + OUT_W;
-  const group = el('colgroup', {}, [
+  // A law card shows a fixed pair of tables that never step, so none of
+  // the anti-drift sizing applies -- and reserving the working block
+  // there makes two tables too wide to sit side by side.
+  const group = compact ? null : el('colgroup', {}, [
     ...Array.from({ length: nv }, () =>
       el('col', { style: `width:${VAR_W}px` })),
     ...cols.map(() => el('col', { style: `width:${workW}px` })),
@@ -108,14 +111,18 @@ export function render(host, opts) {
     rows.push(tr);
   }
 
-  const table = el('table', { class: 'tt', style: `width:${tableW}px` }, [
+  const table = el('table', {
+    class: 'tt' + (compact ? ' compact' : ''),
+    style: compact ? null : `width:${tableW}px`,
+  }, [
     group,
     el('thead', {}, [head]),
     el('tbody', { onmouseleave: () => onHoverRow?.(null) }, rows),
   ]);
   // The trace has to clear when the pointer leaves the table by any
   // route, including out through the header or the table's own margin.
-  const wrap = el('div', { class: 'ttwrap', style: `width:${wrapW}px`,
+  const wrap = el('div', { class: 'ttwrap',
+    style: compact ? null : `width:${wrapW}px`,
     onmouseleave: () => onHoverRow?.(null) }, [table]);
   host.appendChild(wrap);
 }

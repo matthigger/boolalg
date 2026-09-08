@@ -171,6 +171,11 @@ table.tt th {
   line-height: 1.3;
 }
 table.tt td { white-space: nowrap; }
+/* Sized by content, so a pair of law tables stays narrow enough to sit
+   side by side. */
+table.tt.compact { table-layout: auto; font-size: 15px; }
+table.tt.compact th, table.tt.compact td { padding: 5px 8px; }
+table.tt.compact th { white-space: nowrap; }
 table.tt th.var { font-size: 16px; }
 table.tt th.sub { color: var(--muted); font-weight: 500; }
 table.tt th.selcol { background: var(--sel-soft); color: var(--sel); }
@@ -310,11 +315,25 @@ button.ghost:disabled { color: var(--dim); }
 }
 .card h3 { margin: 0 0 4px; font-size: 16px; }
 .card p { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
-.lawgrid { display: flex; align-items: center; justify-content: center;
-           gap: 18px; flex-wrap: wrap; }
-.lawgrid .side { text-align: center; }
-.lawgrid .side .t { font-size: 17px; margin-bottom: 6px; }
-.lawgrid .mid { font-size: 20px; color: var(--muted); }
+/* nowrap: the two sides are a comparison, and a comparison stacked
+   vertically stops reading as one. The compact table keeps them narrow
+   enough that they fit. */
+.lawgrid { display: flex; align-items: flex-start; justify-content: center;
+           gap: 18px; flex-wrap: nowrap; }
+.lawgrid .side { text-align: center; min-width: 0; }
+.lawgrid .side .t { font-size: 17px; margin-bottom: 8px; cursor: pointer; }
+.lawgrid .side .dia { display: flex; justify-content: center; }
+.lawgrid .side .sidecap {
+  font-size: 11.5px; color: var(--muted); margin-top: 8px;
+  min-height: 2.4em;
+}
+.lawgrid .mid { font-size: 20px; color: var(--muted); align-self: center; }
+.lawwhy { color: var(--ink); font-size: 13.5px; line-height: 1.55;
+          margin: 6px 0 16px; }
+/* The demonstration is clickable in the same way the derivation is, so
+   it highlights the same way too. */
+.lawgrid .side .t .nd:hover { background: var(--accent-soft);
+                              border-radius: 4px; }
 .cardfoot { display: flex; gap: 8px; justify-content: flex-end;
             margin-top: 16px; }
 .exlist { display: flex; flex-direction: column; gap: 2px; }

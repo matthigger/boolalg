@@ -5,6 +5,7 @@
 
 import { mask, cost, key, focus } from './core.js';
 import { parse, toText } from './text.js';
+import { GROUPS } from './rules.js';
 
 const log = [];
 let pass = 0, fail = 0;
@@ -284,6 +285,68 @@ setTimeout(() => {
     ok('right down to none at all', counts.has(0), [...counts].join());
     eqv('A, B, C never moved', places.size, 1);
     eqv('and the wrapper never moved or resized', wraps.size, 1);
+  }
+
+  /* -- law cards (SPEC.md 6.3) -- */
+  {
+    const info = (name) => [...document.querySelectorAll('.rule-row')]
+      .find((r) => r.querySelector('button.r').textContent.startsWith(name))
+      .querySelector('.info');
+    const card = () => document.querySelector('#overlay .card');
+    const shut = () => [...card().querySelectorAll('.cardfoot button')]
+      .find((b) => b.textContent === 'dismiss').click();
+
+    B.load('(A u B)^C', 'logic');
+    info("DeMorgan").click();
+    const sides = [...card().querySelectorAll('.lawgrid .side')];
+    eqv('a law card shows two sides', sides.length, 2);
+    const [r0, r1] = sides.map((n) => n.getBoundingClientRect());
+    ok('side by side, not stacked', r1.left >= r0.right - 1,
+       `${r0.right} then ${r1.left}`);
+    eqv('and level with each other', Math.round(r0.top), Math.round(r1.top));
+    ok('no essay on both sides agreeing',
+       !card().textContent.includes('pick out exactly the same'));
+    ok('an intuition is offered',
+       card().querySelector('.lawwhy').textContent.length > 40);
+
+    // Clicking a part re-points that side's table at the part.
+    const side0 = sides[0];
+    const cols = () => side0.querySelectorAll('table.tt thead th').length;
+    const before = cols();
+    // Re-query each time: drawing rebuilds the spans, so a reference
+    // taken before a click is detached by the time of the next one.
+    const part = () => [...side0.querySelectorAll('.t .nd')]
+      .find((n) => n.dataset.path !== '[]');
+    const path = part().dataset.path;
+    part().click();
+    ok('clicking a part adds its column', cols() > before,
+       `${before} then ${cols()}`);
+    ok('and says what it is showing',
+       side0.querySelector('.sidecap').textContent.startsWith('showing'));
+    const again = [...side0.querySelectorAll('.t .nd')]
+      .find((n) => n.dataset.path === path);
+    again.click();
+    eqv('clicking it again clears', cols(), before);
+    shut();
+
+    B.load('(A u B)^C', 'sets');
+    info("DeMorgan").click();
+    const venns = card().querySelectorAll('.lawgrid .side svg.venn');
+    eqv('sets mode draws two Venns', venns.length, 2);
+    const nd = [...card().querySelectorAll('.side .t .nd')]
+      .find((n) => n.dataset.path !== '[]');
+    nd.click();
+    ok('clicking a part shades what it picks out',
+       card().querySelectorAll('.side .vregion.sel').length > 0);
+    shut();
+
+    // Every law has to speak both notations.
+    for (const g of GROUPS.flat()) {
+      info(g).click();
+      ok(`${g} explains itself`,
+         card().querySelector('.lawwhy').textContent.length > 30);
+      shut();
+    }
   }
 
   /* -- undoing the last step -- */

@@ -573,58 +573,177 @@ function runAll() {
 
 /* ---- law demonstration (SPEC.md section 6.3) ---------------------- */
 
+/* Each law carries a worked pair and a sentence of intuition, written
+   once per notation: "every point is inside A or outside it" and "A is
+   either true or false" are the same fact, but only one of them reads
+   as an explanation to a student in front of a truth table.
+
+   The pair is shown, not argued. That both sides agree is what the two
+   diagrams below them demonstrate, so no sentence says so. */
 const LAWS = {
-  Associative: ['(A u B) u C', 'A u (B u C)'],
-  Commutative: ['A u B', 'B u A'],
-  'Double Negation': ['(A^C)^C', 'A'],
-  "DeMorgan's": ['(A u B)^C', 'A^C n B^C'],
-  Distributive: ['A n (B u C)', '(A n B) u (A n C)'],
-  Absorption: ['A n (A u B)', 'A'],
-  Complement: ['A u A^C', '1'],
-  Idempotent: ['A u A', 'A'],
-  Identity: ['0 u A', 'A'],
-  Domination: ['1 u A', '1'],
-  Definition: ['A - B', 'A n B^C'],
+  Associative: {
+    demo: ['(A u B) u C', 'A u (B u C)'],
+    sets: 'Where the brackets fall makes no difference, so this tool '
+        + 'writes a run of the same operator without them at all. '
+        + 'A ∪ B ∪ C needing no brackets is this law — which is why '
+        + 'there is nothing here to apply.',
+    logic: 'Where the brackets fall makes no difference, so this tool '
+         + 'writes a run of the same operator without them at all. '
+         + 'A ∨ B ∨ C needing no brackets is this law — which is why '
+         + 'there is nothing here to apply.',
+  },
+  Commutative: {
+    demo: ['A u B', 'B u A'],
+    sets: 'Order carries no information: A ∪ B and B ∪ A shade the same '
+        + 'region, and so do A ∩ B and B ∩ A. Either side may be '
+        + 'written first, whenever that makes the next step easier to '
+        + 'see.',
+    logic: 'Order carries no information: A ∨ B and B ∨ A come out true '
+         + 'in exactly the same rows, and so do A ∧ B and B ∧ A.',
+  },
+  'Double Negation': {
+    demo: ['(A^C)^C', 'A'],
+    sets: 'Everything outside "everything outside A" is A again. Two '
+        + 'complements undo each other, so a doubled complement can '
+        + 'always be struck out.',
+    logic: 'Denying a denial affirms it. ¬¬A says neither more nor less '
+         + 'than A, so the pair can always be struck out.',
+  },
+  "DeMorgan's": {
+    demo: ['(A u B)^C', 'A^C n B^C'],
+    sets: 'A complement flips the operator and moves inward. To be '
+        + 'outside A ∪ B you must miss A and miss B — so the outside of '
+        + 'a union is the overlap of the outsides. This is the law that '
+        + 'gets a complement off a bracket.',
+    logic: 'A negation flips the operator and moves inward. For A ∨ B to '
+         + 'fail, both sides have to fail — so ¬(A ∨ B) is ¬A ∧ ¬B. This '
+         + 'is the law that gets a negation off a bracket.',
+  },
+  Distributive: {
+    demo: ['A n (B u C)', '(A n B) u (A n C)'],
+    sets: 'A condition shared across a choice can be handed to each '
+        + 'branch separately: the part of A lying in B or C is the part '
+        + 'in B together with the part in C.',
+    logic: 'A condition shared across a choice can be handed to each '
+         + 'branch, the way multiplying out a bracket does — A ∧ (B ∨ C) '
+         + 'becomes (A ∧ B) ∨ (A ∧ C).',
+  },
+  Absorption: {
+    demo: ['A n (A u B)', 'A'],
+    sets: 'The larger set already contains the smaller one, so cutting '
+        + 'down to it changes nothing: once you are inside A, being '
+        + 'inside A ∪ B is automatic. B never gets to matter.',
+    logic: 'The weaker claim is already carried by the stronger one: if '
+         + 'A holds then A ∨ B holds too, so requiring both is just '
+         + 'requiring A. B never gets to matter.',
+  },
+  Complement: {
+    demo: ['A u A^C', '1'],
+    sets: 'Every point is either inside A or outside it — never both, '
+        + 'never neither. So the two halves together are everything, '
+        + 'and their overlap is empty.',
+    logic: 'A is either true or false — never both, never neither. So '
+         + 'A ∨ ¬A is true in every row, and A ∧ ¬A in none.',
+  },
+  Idempotent: {
+    demo: ['A u A', 'A'],
+    sets: 'Asking for the same region twice asks for nothing new.',
+    logic: 'Saying the same thing twice says nothing new.',
+  },
+  Identity: {
+    demo: ['0 u A', 'A'],
+    sets: 'Adding nothing, or cutting down to everything, leaves a set '
+        + 'exactly as it was: ∅ and U are the do-nothing partners for ∪ '
+        + 'and ∩.',
+    logic: 'Or-ing with F, or and-ing with T, leaves a claim exactly as '
+         + 'it was: F and T are the do-nothing partners.',
+  },
+  Domination: {
+    demo: ['1 u A', '1'],
+    sets: 'The extreme swallows whatever it meets: a union with U is U, '
+        + 'an intersection with ∅ is ∅. The other side never gets a say.',
+    logic: 'The extreme swallows whatever it meets: anything ∨ T is T, '
+         + 'anything ∧ F is F. The other side never gets a say.',
+  },
+  Definition: {
+    demo: ['A - B', 'A n B^C'],
+    sets: 'Not a law but a definition. A − B is shorthand for "in A and '
+        + 'not in B", and spelling it out that way is what lets the '
+        + 'other laws reach it.',
+    logic: 'Not a law but a definition, spelling the shorthand out in '
+         + 'terms of the core operators so that the other laws can '
+         + 'reach it.',
+  },
 };
 
-function showLaw(group) {
-  const [ls, rs] = LAWS[group];
-  const L = parse(ls).expr, R = parse(rs).expr;
-  const nv = 3;
-  const side = (e, i) => {
-    const box = el('div', { class: 'side' });
-    box.appendChild(el('div', { class: 't',
-      text: toText(e, notn(), S.letters) }));
+/* One side of the demonstration: the expression, and what it picks out.
+   Clicking a part re-points the diagram at that part, which is the same
+   gesture the main expression pane uses. */
+function lawSide(e, i, nv) {
+  const box = el('div', { class: 'side' });
+  const tbox = el('div', { class: 't' });
+  const dia = el('div', { class: 'dia' + (S.mode === 'sets' ? ' minivenn' : '') });
+  const cap = el('div', { class: 'sidecap' });
+  let sel = null;
+
+  const draw = () => {
+    clear(tbox);
+    tbox.appendChild(nodeDom(e, [], null));
+    if (sel) nodeAtPath(tbox, sel)?.classList.add('sel');
+    const node = sel ? at(e, sel) : null;
+    clear(dia);
     if (S.mode === 'sets') {
-      const h = el('div', { class: 'minivenn' });
-      Venn.render(h, { nv, on: mask(e, nv), sel: null, letters: S.letters,
-        mode: notn(), idp: `d${i}` });
-      box.appendChild(h);
+      Venn.render(dia, { nv, on: mask(e, nv), letters: S.letters,
+        mode: notn(), idp: `d${i}`,
+        sel: node ? mask(node, nv) : null });
     } else {
-      const h = el('div');
-      TT.render(h, { expr: e, nv, letters: S.letters, mode: notn(),
-        mask: mask(e, nv), showWork: false });
-      box.appendChild(h);
+      TT.render(dia, { expr: e, nv, letters: S.letters, mode: notn(),
+        mask: mask(e, nv), compact: true, selNode: node,
+        workCols: node && node !== e ? [node] : [] });
     }
-    return box;
+    cap.textContent = node
+      ? `showing ${toText(node, notn(), S.letters)}`
+      : 'click any part to see what it picks out';
   };
-  const same = mask(L, nv) === mask(R, nv);
-  const body = group === 'Associative'
-    ? el('p', { text: 'Already built into how chains are written here. ' +
-        'That A ' + GLYPH[notn()].or + ' B ' + GLYPH[notn()].or +
-        ' C needs no parentheses is this law — so there is nothing to ' +
-        'apply, and no step to add.' })
-    : el('div', { class: 'lawgrid' }, [
-        side(L, 0), el('div', { class: 'mid', text: '=' }), side(R, 1)]);
+
+  tbox.addEventListener('click', (ev) => {
+    const nd = ev.target.closest?.('.nd');
+    if (!nd || !tbox.contains(nd)) return;
+    sel = JSON.stringify(sel) === nd.dataset.path
+      ? null : JSON.parse(nd.dataset.path);
+    draw();
+  });
+
+  draw();
+  box.appendChild(tbox);
+  box.appendChild(dia);
+  box.appendChild(cap);
+  return box;
+}
+
+function showLaw(group) {
+  const law = LAWS[group];
+  const [ls, rs] = law.demo;
+  const L = parse(ls).expr, R = parse(rs).expr;
+  const nv = Math.max(2, maxVar(L) + 1, maxVar(R) + 1);
+
+  const body = group === 'Associative' ? null
+    : el('div', { class: 'lawgrid' },
+        [lawSide(L, 0, nv), el('div', { class: 'mid', text: '=' }),
+         lawSide(R, 1, nv)]);
+
+  // A law whose two sides disagree is a broken rule table, not a
+  // teaching point -- say so rather than drawing it as fact.
+  const broken = group !== 'Associative' && mask(L, nv) !== mask(R, nv);
 
   const canApply = (available().get(group) || []).length > 0 &&
                    group !== 'Associative';
   openCard(el('div', { class: 'card' }, [
     el('h3', { text: label(group) + (group === 'Associative' ? '' : ' Law') }),
-    el('p', { text: group === 'Associative' ? '' : (same
-      ? 'Both sides pick out exactly the same thing — which is why ' +
-        'rewriting one into the other never changes the picture.'
-      : 'these differ — that would be a bug') }),
+    el('p', { class: 'lawwhy', text: law[notn()] }),
+    broken ? el('p', { class: 'err', text: 'these two sides disagree — '
+                                         + 'that is a bug in the rule table' })
+           : null,
     body,
     el('div', { class: 'cardfoot' }, [
       canApply ? el('button', { class: 'primary',
