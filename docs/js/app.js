@@ -10,10 +10,13 @@ import { target, derive, minTable } from './minimize.js';
 import * as Venn from './venn.js';
 import * as TT from './truthtable.js';
 import * as Circuit from './circuit.js';
+import * as Ex from './export.js';
 
 /* ---- state -------------------------------------------------------- */
 
 const S = {
+  // The coloured boxes marking what each step changed.
+  annotate: true,
   mode: 'sets',
   nv: 3,
   letters: PRESETS.ABC,
@@ -219,7 +222,8 @@ function renderLines() {
   const boxes = [];
   S.lines.forEach((ln, i) => {
     const exprBox = el('span', { class: 'expr' }, [nodeDom(ln.expr, [], null)]);
-    const step = i && ln.rule ? stepVars(((i - 1) % STEP_COLOURS) + 1) : null;
+    const step = S.annotate && i && ln.rule
+      ? stepVars(((i - 1) % STEP_COLOURS) + 1) : null;
     const ruleTag = ln.rule
       ? el('span', { class: 'rule' + (step ? ' step' : ''),
                      text: label(ln.rule) })
@@ -256,6 +260,7 @@ function renderLines() {
 
   /* Second pass, because a step paints the line above as well as its
      own, and that line is only built once the loop above has run. */
+  if (!S.annotate) return;
   S.lines.forEach((ln, i) => {
     if (!i || !ln.rule) return;
     const d = changeSpan(S.lines[i - 1].expr, ln.expr);
@@ -303,6 +308,91 @@ function wireSelection(host, expr) {
   host.addEventListener('mouseleave', () => markSel(host, expr, null, 'hov'));
 }
 
+/* ---- exports (SPEC.md section 13) --------------------------------- */
+
+/* What renderLines paints, as data: for each line, the parts a step
+   marked and the colour it used. The exporters draw their own text, so
+   they need the paths rather than the DOM spans carrying them. */
+function stepMarks() {
+  const marks = S.lines.map(() => []);
+  if (!S.annotate) return marks;
+  S.lines.forEach((ln, i) => {
+    if (!i || !ln.rule) return;
+    const d = changeSpan(S.lines[i - 1].expr, ln.expr);
+    if (!d) return;
+    const step = ((i - 1) % STEP_COLOURS) + 1;
+    if (d.after) marks[i].push({ paths: spanPaths(d.after), step });
+    if (d.before) marks[i - 1].push({ paths: spanPaths(d.before), step });
+  });
+  return marks;
+}
+
+/* Named after the expression, so a folder of these still says which is
+   which once they are out of the tool. */
+const exportBase = () => Ex.slug(cur() ? toText(cur(), notn(), S.letters)
+                                       : 'expression');
+
+function exportBar(items) {
+  return el('span', { class: 'exports' }, items.map(([name, fn]) =>
+    el('button', {
+      class: 'exp', text: name, type: 'button',
+      title: `download as ${name}`,
+      onclick: async () => {
+        try { await fn(); } catch (e) { toast(`export failed: ${e.message}`); }
+      },
+    })));
+}
+
+const tableData = () => Ex.tableData({
+  expr: cur(), nv: S.nv, letters: S.letters, mode: notn(),
+  mask: curMask(), showWork: S.showWork });
+
+function tableExports() {
+  return exportBar([
+    ['png', () => Ex.canvasPNG(Ex.tablePNG(tableData()),
+                               `${exportBase()}-table.png`)],
+    ['csv', () => Ex.save(`${exportBase()}-table.csv`,
+                          Ex.tableCSV(tableData()), 'text/csv')],
+    ['tex', () => Ex.save(`${exportBase()}-table.tex`,
+                          Ex.tableTeX(tableData(),
+                            `Truth table for ${toText(cur(), notn(), S.letters)}`),
+                          'application/x-tex')],
+  ]);
+}
+
+function circuitExports() {
+  return exportBar([
+    ['png', async () => {
+      const g = circuitBody?.querySelector('svg.circuit');
+      if (!g) throw new Error('nothing drawn yet');
+      Ex.canvasPNG(await Ex.svgPNG(g), `${exportBase()}-circuit.png`);
+    }],
+  ]);
+}
+
+function renderExprBar() {
+  const host = document.getElementById('exprExport');
+  if (!host) return;
+  clear(host);
+  if (!cur()) return;
+  // Nothing has been derived yet, so there are no steps to mark.
+
+  host.appendChild(el('button', {
+    class: 'toggle' + (S.annotate ? ' on' : ''), type: 'button',
+    text: 'step marks',
+    title: 'the coloured boxes showing what each step changed',
+    onclick: () => { S.annotate = !S.annotate; render(); },
+  }));
+  host.appendChild(exportBar([
+    ['png', () => Ex.canvasPNG(
+       Ex.derivationPNG(S.lines, notn(), S.letters, stepMarks()),
+       `${exportBase()}.png`)],
+    ['tex', () => Ex.save(`${exportBase()}.tex`,
+       Ex.derivationTeX(S.lines, notn(), S.letters, stepMarks()),
+       'application/x-tex')],
+  ]));
+}
+
 /* ---- viewer ------------------------------------------------------- */
 
 /* Hovering a truth-table row retraces the circuit, and that must not go
@@ -311,6 +401,7 @@ function wireSelection(host, expr) {
    trace never arrives and the circuit stays stuck on the last row. Hold
    handles to the live panes instead and repaint only what changed. */
 let ttHost = null, circuitBody = null, circuitHead = null, circuitCap = null;
+let circuitTitle = null;
 
 function setHoverRow(r) {
   if (S.hoverRow === r) return;
@@ -344,7 +435,7 @@ function drawCircuit() {
   Circuit.render(circuitBody,
     { expr: cur(), nv: S.nv, letters: S.letters, row,
       sel: selNodes(cur(), S.sel) });
-  circuitHead.textContent = 'Circuit' + (row == null ? ''
+  circuitTitle.textContent = 'Circuit' + (row == null ? ''
     : ` — row ${row.toString(2).padStart(S.nv, '0')}`);
   circuitCap.textContent = row == null
     ? 'hover a truth-table row to trace the wires'
@@ -389,7 +480,7 @@ function renderViewer() {
   /* Logic shows the table alone; circuit shows the table and the
      circuit it drives, side by side. */
   const p1 = el('div', { class: 'pane tt-pane' },
-    [el('h2', { text: 'Truth table' })]);
+    [el('h2', {}, [el('span', { text: 'Truth table' }), tableExports()])]);
   const b1 = el('div', { class: 'panebody' });
   ttHost = b1;
   TT.render(b1, {
@@ -405,7 +496,8 @@ function renderViewer() {
 
   if (S.mode !== 'circuit') return;
 
-  circuitHead = el('h2', {});
+  circuitTitle = el('span', {});
+  circuitHead = el('h2', {}, [circuitTitle, circuitExports()]);
   circuitCap = el('div', { class: 'caption' });
   circuitBody = el('div', { class: 'panebody' });
   const p2 = el('div', { class: 'pane' }, [circuitHead, circuitBody, circuitCap]);
@@ -859,6 +951,7 @@ function render() {
   renderLines();
   renderRules();
   renderOpPad();
+  renderExprBar();
   const p = cur() ? plan() : null;
   document.getElementById('simplify').disabled = !cur() || !!p?.done;
   document.getElementById('simplify').textContent =
@@ -1020,6 +1113,6 @@ function boot() {
    confused instructor can poke at it from the console. */
 window.BAE = { S, render, load, unify, applyRule, available, plan,
                doHint, applyNext, runAll, toggleRegion, minimalFor,
-               setExpr, reseed, undoLast };
+               setExpr, reseed, undoLast, stepMarks };
 
 boot();

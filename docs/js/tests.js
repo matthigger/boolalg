@@ -4,7 +4,9 @@
 
 import { vr, cn, nt, df, sy, and, or, ch, eq, key, mask, cost, evalAt,
          desugar, selections, focus, replaceSel, at } from './core.js';
-import { parse, toText, PRESETS } from './text.js';
+import { parse, toText, toTeX, toTextSpans, PRESETS } from './text.js';
+import { tableData, tableCSV, tableTeX, derivationTeX, slug }
+  from './export.js';
 import { rewritesOf, searchRewrites, label } from './rules.js';
 import { minTable, target, derive, steps } from './minimize.js';
 
@@ -241,6 +243,71 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
 }
 
 /* ---- report ------------------------------------------------------- */
+/* ---- 12. exports (SPEC.md section 13) ------------------------------ */
+{
+  // The span map only means anything if it describes the same string
+  // toText produces, so check that on the round-trip corpus.
+  let spanOK = true, sliceOK = true;
+  {
+    let sd = 999;
+    const r = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    for (let i = 0; i < 200; i++) {
+      const n = rnd(3, r);
+      for (const mode of ['logic', 'sets']) {
+        const { text, at: spans } = toTextSpans(n, mode, PRESETS.ABC);
+        if (text !== toText(n, mode, PRESETS.ABC)) spanOK = false;
+        for (const [k, [a, b]] of spans) {
+          const sub = at(n, JSON.parse(k));
+          const want = toText(sub, mode, PRESETS.ABC);
+          const got = text.slice(a, b);
+          // A span may carry brackets its subtree does not print alone.
+          if (got !== want && got !== `(${want})`) sliceOK = false;
+        }
+      }
+    }
+  }
+  ok('span text matches toText', spanOK);
+  ok('and every span covers its own subtree', sliceOK);
+
+  const T = (src, mode) => toTeX(parse(src).expr, mode, PRESETS.ABC);
+  eqv('tex: sets complement is an overline',
+      T('(A u B)^C', 'sets'), '\\overline{A \\cup B}');
+  eqv('tex: logic negation is a prefix',
+      T('~(A & B)', 'logic'), '\\lnot \\left(A \\land B\\right)');
+  eqv('tex: difference', T('A - B', 'sets'), 'A \\setminus B');
+  eqv('tex: constants', T('1 & 0', 'logic'),
+      '\\mathrm{T} \\land \\mathrm{F}');
+  eqv('tex: no brackets inside a chain', T('A u B u C', 'sets'),
+      'A \\cup B \\cup C');
+
+  const e = parse('A & B').expr;
+  const d = tableData({ expr: e, nv: 2, letters: PRESETS.ABC,
+                        mode: 'logic', mask: mask(e, 2), showWork: false });
+  eqv('csv has a header and every row',
+      tableCSV(d).trim().split('\n').length, 5);
+  eqv('csv header names the columns',
+      tableCSV(d).split('\n')[0], 'A,B,A \u2227 B');
+  eqv('csv last row is the only 1',
+      tableCSV(d).trim().split('\n').at(-1), '1,1,1');
+
+  const tex = tableTeX(d, 'cap');
+  ok('tex table is a tabular', tex.includes('\\begin{tabular}{cc|c}'));
+  ok('tex table rules off the variables', tex.includes('\\hline'));
+  ok('tex table closes', tex.trim().endsWith('\\end{tabular}'));
+
+  const dv = derivationTeX(
+    [{ expr: parse('~(A & B)').expr },
+     { expr: parse('~A | ~B').expr, rule: "DeMorgan's" }], 'logic',
+    PRESETS.ABC);
+  ok('derivation is an align*', dv.includes('\\begin{align*}'));
+  ok('and tags the step with its law', dv.includes("\\text{DeMorgan's}"));
+  ok('the first line carries no relation', dv.includes('     & \\lnot'));
+  ok('and the relation is spaced off the term', dv.includes(' ={} & '));
+
+  eqv('slug is filesystem-safe', slug('(A \u222a B)\u1d9c'), 'a-b');
+  eqv('slug never comes back empty', slug('\u2229\u222a'), 'expression');
+}
+
 const summary = `RESULT pass=${pass} fail=${fail}`;
 const el = document.getElementById('out');
 el.textContent = summary + '\n\n' + log.join('\n') + '\n\nDERIVATIONS\n' +

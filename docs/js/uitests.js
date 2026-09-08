@@ -6,6 +6,7 @@
 import { mask, cost, key, focus } from './core.js';
 import { parse, toText } from './text.js';
 import { GROUPS } from './rules.js';
+import * as Ex from './export.js';
 
 const log = [];
 let pass = 0, fail = 0;
@@ -13,7 +14,7 @@ const ok = (n, c, d = '') => c ? (pass++, log.push(`  ok   ${n}`))
                                : (fail++, log.push(`  FAIL ${n} ${d}`));
 const eqv = (n, g, w) => ok(n, g === w, `got ${JSON.stringify(g)} want ${JSON.stringify(w)}`);
 
-setTimeout(() => {
+setTimeout(async () => {
   const B = window.BAE;
   if (!B) { document.getElementById('out').textContent =
     'RESULT pass=0 fail=1\nno window.BAE'; return; }
@@ -400,6 +401,85 @@ setTimeout(() => {
     inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     eqv('LaTeX parses', toText(B.S.lines[0].expr, 'logic'), 'A ∨ (B ∧ ¬C)');
     eqv('and echoes back as glyphs', inp.value, 'A ∨ (B ∧ ¬C)');
+  }
+
+  /* -- exports (SPEC.md 13) -- */
+  {
+    const bar = (sel) => [...document.querySelectorAll(sel + ' button.exp')]
+      .map((b) => b.textContent);
+
+    B.load('(C & B) | (~C & B)', 'logic');
+    eqv('the table offers three formats',
+        bar('.tt-pane h2 .exports').join(), 'png,csv,tex');
+    eqv('the derivation offers both a picture and LaTeX',
+        bar('#exprExport .exports').join(), 'png,tex');
+
+    B.S.mode = 'circuit'; B.render();
+    const panes = [...document.querySelectorAll('#viewer .pane')];
+    eqv('the circuit offers a png',
+        [...panes.at(-1).querySelectorAll('h2 .exports button.exp')]
+          .map((b) => b.textContent).join(), 'png');
+    ok('and the table keeps its own three',
+       bar('.tt-pane h2 .exports').join() === 'png,csv,tex');
+
+    const d = Ex.tableData({ expr: B.S.lines[0].expr, nv: 3,
+      letters: B.S.letters, mode: 'logic',
+      mask: mask(B.S.lines[0].expr, 3), showWork: false });
+    const c = Ex.tablePNG(d, 1);
+    ok('the table renders to a canvas', c.width > 80 && c.height > 80,
+       `${c.width}x${c.height}`);
+    eqv('one row per assignment, plus a header',
+        c.height, 34 + 8 * 30);
+
+    B.applyNext();
+    const dc = Ex.derivationPNG(B.S.lines, 'logic', B.S.letters, null, 1);
+    ok('the derivation renders to a canvas', dc.width > 100,
+       `${dc.width}x${dc.height}`);
+    eqv('one row per line', dc.height, 18 * 2 + B.S.lines.length * 34);
+
+    // Step marks: the toggle drives the pane and both exports together.
+    const toggle = () => document.querySelector('#exprExport button.toggle');
+    ok('the marks are on to begin with', B.S.annotate);
+    ok('and the toggle shows it', toggle().classList.contains('on'));
+    ok('the pane paints them',
+       document.querySelectorAll('#lines .nd.after').length > 0);
+    ok('the marks reach the exports', B.stepMarks().some((m) => m.length));
+
+    const texOn = Ex.derivationTeX(B.S.lines, 'logic', B.S.letters,
+                                   B.stepMarks());
+    ok('annotated tex defines the macro', texOn.includes('\\providecommand{\\bastep}'));
+    ok('and marks a subtree with it', texOn.includes('\\bastep{bastep1}{'));
+    ok('and defines the colour it names', texOn.includes('\\definecolor{bastep1}'));
+    ok('still an align*', texOn.includes('\\begin{align*}'));
+
+    toggle().click();
+    ok('toggling off clears the state', !B.S.annotate);
+    eqv('the pane stops painting them',
+        document.querySelectorAll('#lines .nd.after').length, 0);
+    ok('and nothing is marked for export',
+       B.stepMarks().every((m) => m.length === 0));
+    const texOff = Ex.derivationTeX(B.S.lines, 'logic', B.S.letters,
+                                    B.stepMarks());
+    ok('unannotated tex needs no macro', !texOff.includes('\\bastep'));
+    ok('but still names the laws', texOff.includes('\\text{'));
+    toggle().click();
+    ok('and it toggles back on', B.S.annotate);
+
+    const g = document.querySelector('#viewer svg.circuit');
+    ok('the circuit is on the page', !!g);
+    const cc = await Ex.svgPNG(g, 1);
+    ok('and rasterises', cc.width > 20 && cc.height > 20,
+       `${cc.width}x${cc.height}`);
+    // A blank raster is the failure mode that looks like success.
+    const px = cc.getContext('2d')
+      .getImageData(0, 0, cc.width, cc.height).data;
+    let ink = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i] < 240 || px[i + 1] < 240 || px[i + 2] < 240) ink++;
+    }
+    ok('with something actually drawn on it', ink > 100, `${ink} dark px`);
+
+    B.S.mode = 'logic'; B.render();
   }
 
   document.getElementById('out').textContent =

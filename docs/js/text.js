@@ -210,3 +210,118 @@ export function toText(n, mode = 'logic', letters = PRESETS.ABC,
         .join(` ${g[n.k]} `));
   }
 }
+
+/* ---- LaTeX --------------------------------------------------------- */
+
+const TEX = {
+  logic: { and: '\\land', or: '\\lor', diff: '\\setminus', sym: '\\oplus',
+           T: '\\mathrm{T}', F: '\\mathrm{F}', notPre: '\\lnot ' },
+  sets: { and: '\\cap', or: '\\cup', diff: '\\setminus', sym: '\\triangle',
+          T: 'U', F: '\\emptyset', notPre: '' },
+};
+
+/* Render for a .tex file. Complement is an overline in sets, where the
+   bar is the notation the handout uses, and a prefix \lnot in logic. An
+   overline already groups what it covers, so it takes no brackets. */
+export function toTeX(n, mode = 'logic', letters = PRESETS.ABC,
+                      parentKind = null) {
+  const g = TEX[mode];
+  const wrap = (s) => (needsParens(n, parentKind) ? `\\left(${s}\\right)` : s);
+  switch (n.k) {
+    case 'var': return letters[n.i] ?? '?';
+    case 'const': return n.v ? g.T : g.F;
+    case 'not': {
+      const body = toTeX(n.a, mode, letters, null);
+      if (!g.notPre) return `\\overline{${body}}`;
+      const simple = ['var', 'const', 'not'].includes(n.a.k);
+      return g.notPre + (simple ? body : `\\left(${body}\\right)`);
+    }
+    case 'diff':
+      return wrap(`${toTeX(n.l, mode, letters, 'diff')} ${g.diff} ` +
+        `${toTeX(n.r, mode, letters, 'diff')}`);
+    case 'sym':
+      return wrap(`${toTeX(n.l, mode, letters, 'sym')} ${g.sym} ` +
+        `${toTeX(n.r, mode, letters, 'sym')}`);
+    default:
+      return wrap(n.ts.map((t) => toTeX(t, mode, letters, n.k))
+        .join(` ${g[n.k]} `));
+  }
+}
+
+/* The same string toText builds, plus where each subtree landed in it:
+   a map from JSON.stringify(path) to [start, end). An exporter drawing
+   its own text needs this to put a mark around a part of a line -- the
+   DOM spans that carry it on screen do not survive into a canvas. */
+export function toTextSpans(n, mode = 'logic', letters = PRESETS.ABC) {
+  const g = GLYPH[mode];
+  const at = new Map();
+  let out = '';
+  const walk = (node, path, parentKind) => {
+    const start = out.length;
+    const paren = needsParens(node, parentKind);
+    if (paren) out += '(';
+    switch (node.k) {
+      case 'var': out += letters[node.i] ?? '?'; break;
+      case 'const': out += node.v ? g.T : g.F; break;
+      case 'not': {
+        const simple = ['var', 'const', 'not'].includes(node.a.k);
+        const body = () => {
+          if (!simple) out += '(';
+          walk(node.a, [...path, 'a'], null);
+          if (!simple) out += ')';
+        };
+        if (g.notPre) { out += g.notPre; body(); }
+        else { body(); out += g.notPost; }
+        break;
+      }
+      case 'diff': case 'sym':
+        walk(node.l, [...path, 'l'], node.k);
+        out += ` ${node.k === 'diff' ? g.diff : g.sym} `;
+        walk(node.r, [...path, 'r'], node.k);
+        break;
+      default:
+        node.ts.forEach((t, i) => {
+          if (i) out += ` ${g[node.k]} `;
+          walk(t, [...path, i], node.k);
+        });
+    }
+    if (paren) out += ')';
+    at.set(JSON.stringify(path), [start, out.length]);
+  };
+  walk(n, [], null);
+  return { text: out, at };
+}
+
+/* toTeX, with named subtrees wrapped in a \bastep macro. marks maps
+   JSON.stringify(path) to a colour name the caller has defined; the
+   macro itself is left for the caller to emit, so a reader can redefine
+   it without touching the body of the derivation. */
+export function toTeXMarked(n, mode, letters, marks,
+                            path = [], parentKind = null) {
+  const g = TEX[mode];
+  const rec = (c, seg, pk) =>
+    toTeXMarked(c, mode, letters, marks, [...path, seg], pk);
+  let s;
+  switch (n.k) {
+    case 'var': s = letters[n.i] ?? '?'; break;
+    case 'const': s = n.v ? g.T : g.F; break;
+    case 'not': {
+      const body = rec(n.a, 'a', null);
+      if (!g.notPre) { s = `\\overline{${body}}`; break; }
+      const simple = ['var', 'const', 'not'].includes(n.a.k);
+      s = g.notPre + (simple ? body : `\\left(${body}\\right)`);
+      break;
+    }
+    case 'diff': case 'sym': {
+      const inner = `${rec(n.l, 'l', n.k)} ${g[n.k]} ${rec(n.r, 'r', n.k)}`;
+      s = needsParens(n, parentKind) ? `\\left(${inner}\\right)` : inner;
+      break;
+    }
+    default: {
+      const inner = n.ts.map((t, i) => rec(t, i, n.k)).join(` ${g[n.k]} `);
+      s = needsParens(n, parentKind) ? `\\left(${inner}\\right)` : inner;
+    }
+  }
+  const c = marks?.get(JSON.stringify(path));
+  return c ? `\\bastep{${c}}{${s}}` : s;
+}
