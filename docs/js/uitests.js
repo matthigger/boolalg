@@ -247,6 +247,36 @@ setTimeout(async () => {
     eqv('and a smaller one narrows again', B.S.nv, 2);
   }
 
+  /* -- the sets tab is declined, not obeyed, while a fourth variable
+     is in play. Narrowing to three re-seeded from a mask read at the
+     wrong width, which swapped the reader's expression for an
+     unrelated one and lost the derivation with it. -- */
+  {
+    const setsBtn = document.querySelector('#modeToggle [data-mode=sets]');
+    B.load('(C & B) | (~C & B) | (A & ~B) | (B & ~C & ~D)', 'logic');
+    B.applyNext();
+    const before = S.lines.map((ln) => toText(ln.expr, 'logic', S.letters));
+    ok('the derivation ran a step', before.length === 2, before.join(' / '));
+    eqv('the sets tab reads as unavailable',
+        setsBtn.getAttribute('aria-disabled'), 'true');
+    setsBtn.click();
+    eqv('clicking it leaves the view in logic', S.mode, 'logic');
+    eqv('all four variables are still there', S.nv, 4);
+    eqv('and the derivation is untouched',
+        S.lines.map((ln) => toText(ln.expr, 'logic', S.letters)).join(' / '),
+        before.join(' / '));
+
+    B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+    eqv('three variables leave the tab available',
+        setsBtn.getAttribute('aria-disabled'), 'false');
+    setsBtn.click();
+    eqv('and it still switches', S.mode, 'sets');
+    eqv('carrying the expression over',
+        toText(S.lines[0].expr, 'logic', S.letters),
+        '(C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)');
+    S.mode = 'logic'; B.render();
+  }
+
   /* -- leaving the table stops tracing. The circuit used to stay stuck
      on whichever row the pointer last touched. -- */
   B.load('(A & B) | ~C', 'circuit');
@@ -296,6 +326,34 @@ setTimeout(async () => {
     ok('right down to none at all', counts.has(0), [...counts].join());
     eqv('A, B, C never moved', places.size, 1);
     eqv('and the wrapper never moved or resized', wraps.size, 1);
+  }
+
+  /* -- a four-variable table is centred like any other. The wrapper
+     used to reserve a fixed width that only three variables fit, which
+     left the wide table hanging off its right while the wrapper stayed
+     centred for a narrower one: dead space on the left, clipped on the
+     right. -- */
+  B.load('(C & B) | (~C & B) | (A & ~B) | (B & ~C & ~D) | (D & A & ~B)',
+         'logic');
+  {
+    const body = document.querySelector('#viewer .tt-pane .panebody');
+    const tbl = document.querySelector('#viewer table.tt');
+    const bb = body.getBoundingClientRect(), tb = tbl.getBoundingClientRect();
+    // clientWidth spans both paddings and stops short of the scrollbar
+    // gutter, so it is the width the table actually has to sit in.
+    const cs = getComputedStyle(body);
+    const left = tb.x - (bb.x + parseFloat(cs.paddingLeft));
+    const right = bb.x + body.clientWidth - parseFloat(cs.paddingRight)
+                - tb.right;
+    eqv('four variables get four columns',
+        document.querySelectorAll('#viewer thead th.var').length, 4);
+    // Centred when it fits; flush left when it does not, so the whole
+    // of the overflow is reachable by scrolling right. What must never
+    // happen is both at once.
+    if (right >= 0) ok('the table is centred', Math.abs(left - right) <= 2,
+                       `left ${Math.round(left)} right ${Math.round(right)}`);
+    else ok('a table too wide to fit starts at the left edge',
+            Math.abs(left) <= 2, `left ${Math.round(left)}`);
   }
 
   /* -- DeMorgan reaches a negated chain of any length -- */

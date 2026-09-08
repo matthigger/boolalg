@@ -17,16 +17,23 @@
    the table is left-aligned inside it. The variable columns therefore
    start at the same x for the life of a derivation, while the table's
    right edge is free to come in as the expression simplifies. Holding
-   the table itself to a constant width instead would leave a 288px
-   hole in the middle of it once the last working column went away. */
+   the table itself to a constant width instead would leave a hole in
+   the middle of it once the last working column went away.
+
+   That width is the seed line's own table, measured. A fixed per-column
+   allowance has to be wide enough for the widest table it will ever
+   hold, and one that suits three variables leaves a four-variable table
+   hanging off the wrapper's right while the wrapper stays centred for a
+   narrower one -- dead space on the left, clipping on the right. The
+   seed holds for the life of a derivation (a new expression starts a
+   new one), so measuring it pins the wrapper for exactly as long as the
+   variable columns have to stay put. */
 
 import { el, clear } from './dom.js';
 import { toText } from './text.js';
 import { evalAt, isChain, key } from './core.js';
 
 const VAR_W = 42;       // px per variable column
-const WORK_BLOCK = 288; // px the wrapper reserves for working columns
-const OUT_W = 156;      // px the wrapper reserves for the output column
 const MAX_WORK = 6;
 
 /* Operator nodes in evaluation order, root last. */
@@ -43,6 +50,61 @@ export function gateNodes(n, out = []) {
   return out;
 }
 
+/* The working columns drawn for an expression, innermost first. */
+function working(expr, showWork) {
+  if (!showWork) return [];
+  return gateNodes(expr).slice(0, -1).slice(-MAX_WORK);
+}
+
+/* One col per column, so the variable width above is what actually
+   happens rather than a suggestion the browser may ignore. Only the
+   variable columns are pinned: a working column is sized by the
+   expression in its head, because dividing a fixed block between
+   however many there are wrapped those heads over two and three
+   lines -- and a header is the one thing in the column that has to be
+   read. */
+function colGroup(nv, ncols) {
+  return el('colgroup', {}, [
+    ...Array.from({ length: nv }, () =>
+      el('col', { style: `width:${VAR_W}px` })),
+    ...Array.from({ length: ncols + 1 }, () => el('col')),
+  ]);
+}
+
+/* The header row: one cell per variable, per working column, then the
+   expression itself. sel marks the selected column, if any. */
+function headRow(expr, cols, nv, letters, mode, sel = () => '') {
+  const label = (n) => toText(n, mode, letters);
+  return el('tr', {}, [
+    ...letters.slice(0, nv).map((L, i) =>
+      el('th', { class: 'var' + sel(i), text: L })),
+    ...cols.map((n, i) => el('th', {
+      class: 'sub' + sel(nv + i), text: label(n), title: label(n),
+    })),
+    el('th', { class: sel(nv + cols.length).trim(),
+               text: label(expr), title: label(expr) }),
+  ]);
+}
+
+/* Width of the table that head and group describe, unconstrained.
+   Two rows are enough to measure: every column is as wide as the wider
+   of its header and a one-character value. Off-screen rather than
+   hidden, since a display:none table has no width to read. */
+function naturalWidth(head, group, ncol) {
+  const row = el('tr', {}, [
+    ...Array.from({ length: ncol - 1 }, () => el('td', { text: '0' })),
+    el('td', { class: 'out', text: '0' }),
+  ]);
+  const table = el('table', { class: 'tt' }, [
+    group, el('thead', {}, [head]), el('tbody', {}, [row]),
+  ]);
+  const probe = el('div', { class: 'ttprobe' }, [table]);
+  document.body.appendChild(probe);
+  const w = table.getBoundingClientRect().width;
+  probe.remove();
+  return Math.ceil(w);
+}
+
 /* Move the row trace without rebuilding the table. Re-rendering under
    the cursor loses the mouseleave that clears it. */
 export function markRow(host, r) {
@@ -52,33 +114,21 @@ export function markRow(host, r) {
 
 export function render(host, opts) {
   const { expr, nv, letters, mode, mask, selNode, showWork, workCols,
-          compact, onToggle, onHoverRow, hoverRow } = opts;
+          pinExpr, compact, onToggle, onHoverRow, hoverRow } = opts;
   clear(host);
 
-  const inner = gateNodes(expr).slice(0, -1);
-  const cols = workCols ?? (showWork ? inner.slice(-MAX_WORK) : []);
+  const cols = workCols ?? working(expr, showWork);
+  const group = compact ? null : colGroup(nv, cols.length);
 
-  // One <col> per column, so the widths above are what actually happens
-  // rather than a suggestion the browser may ignore. Per-column width is
-  // floored to a whole pixel: WORK_BLOCK / cols.length is rarely an
-  // integer, and letting the browser round five fractional columns moved
-  // the table by a pixel or three -- exactly the drift this is here to
-  // stop.
-  const wrapW = nv * VAR_W + WORK_BLOCK + OUT_W;
-  // Only the variable columns are pinned. A working column is sized by
-  // the expression in its head, because dividing a fixed block between
-  // however many there are wrapped those heads over two and three
-  // lines -- and a header is the one thing in the column that has to be
-  // read. The table may now outgrow the wrapper to the right; its left
-  // edge, which is what the reader is tracking, does not move.
-  const group = compact ? null : el('colgroup', {}, [
-    ...Array.from({ length: nv }, () =>
-      el('col', { style: `width:${VAR_W}px` })),
-    ...cols.map(() => el('col')),
-    el('col'),
-  ]);
-
-  const label = (n) => toText(n, mode, letters);
+  // The seed line, not this one: the wrapper has to hold still while the
+  // derivation runs, and the table it holds may outgrow it to the right
+  // as a law expands the expression. Its left edge, which is what the
+  // reader is tracking, does not move.
+  const pin = pinExpr ?? expr;
+  const pinCols = working(pin, showWork);
+  const wrapW = compact ? 0
+    : naturalWidth(headRow(pin, pinCols, nv, letters, mode),
+                   colGroup(nv, pinCols.length), nv + pinCols.length + 1);
 
   /* Which column the selection lands in, by value rather than by node
      identity: a clicked A is a different object from the A the header
@@ -94,15 +144,7 @@ export function render(host, opts) {
   })();
   const sel = (i) => (i === selCol ? ' selcol' : '');
 
-  const head = el('tr', {}, [
-    ...letters.slice(0, nv).map((L, i) =>
-      el('th', { class: 'var' + sel(i), text: L })),
-    ...cols.map((n, i) => el('th', {
-      class: 'sub' + sel(nv + i), text: label(n), title: label(n),
-    })),
-    el('th', { class: sel(nv + cols.length).trim(),
-               text: label(expr), title: label(expr) }),
-  ]);
+  const head = headRow(expr, cols, nv, letters, mode, sel);
 
   const rows = [];
   for (let r = 0; r < (1 << nv); r++) {

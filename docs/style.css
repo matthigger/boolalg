@@ -151,7 +151,8 @@ header .modes { margin-left: 4px; }
   background: var(--accent); color: var(--on-accent);
   box-shadow: 0 2px 6px var(--accent-glow);
 }
-.modes button:disabled, .seg button:disabled {
+.modes button:disabled, .seg button:disabled,
+.modes button[aria-disabled=true] {
   color: var(--dim); cursor: default;
 }
 
@@ -273,6 +274,11 @@ svg.venn { display: block; margin: 0 auto; cursor: pointer;
    viewer overrides it inline with the constant width that pins the
    variable columns. */
 .ttwrap { margin: 0 auto; width: fit-content; }
+/* Where the wrapper's width is measured. Off-screen rather than
+   display:none, which has no width to measure, and out of the flow so
+   the measurement cannot scroll the page it is measured on. */
+.ttprobe { position: absolute; top: 0; left: -9999px;
+           visibility: hidden; pointer-events: none; }
 /* max-content, not auto: inside the fixed-width wrapper an auto table
    is squeezed to fit, which compressed the variable columns and moved
    them -- the one thing the wrapper exists to prevent. It takes its

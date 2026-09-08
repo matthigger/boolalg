@@ -535,6 +535,7 @@ function renderViewer() {
   ttHost = b1;
   TT.render(b1, {
     expr, nv: S.nv, letters: S.letters, mode: notn(), mask: m,
+    pinExpr: S.lines[0].expr,
     selNode, showWork: S.showWork, hoverRow: S.hoverRow,
     onToggle: (r) => toggleRegion(r),
     onHoverRow: setHoverRow,
@@ -1047,6 +1048,16 @@ function fitMode(need) {
   }
 }
 
+/* Whether any line of the derivation uses the fourth variable, which
+   is what puts the sets view out of reach. Toggling views keeps the
+   derivation (SPEC.md section 4.1) and the Venn cannot draw a fourth
+   variable (section 12), so the honest answer to the sets tab here is
+   to decline it and say why. Narrowing to three instead would re-seed
+   from a mask read at the wrong width -- the reader's expression
+   replaced by an unrelated one, which is what it looks like from the
+   outside too. */
+const needsFour = () => S.lines.some((ln) => maxVar(ln.expr) > 2);
+
 function load(src, mode) {
   const { expr, letters } = parse(src);
   if (mode) S.mode = mode;
@@ -1105,8 +1116,15 @@ function fromUrl() {
 /* ---- render ------------------------------------------------------- */
 
 function render() {
+  const four = needsFour();
   for (const b of document.querySelectorAll('#modeToggle button')) {
     b.setAttribute('aria-selected', String(b.dataset.mode === S.mode));
+    if (b.dataset.mode !== 'sets') continue;
+    // aria-disabled, not disabled: a tab that looks unavailable but
+    // still answers a click can say what makes it unavailable.
+    b.setAttribute('aria-disabled', String(four));
+    if (four) b.title = 'the Venn only draws three variables';
+    else b.removeAttribute('title');
   }
   renderViewer();
   renderLines();
@@ -1217,6 +1235,11 @@ function boot() {
   Theme.init();
   for (const b of document.querySelectorAll('#modeToggle button')) {
     b.onclick = () => {
+      if (b.dataset.mode === 'sets' && needsFour()) {
+        toast('four variables — the Venn only draws three, so this '
+              + 'expression has no diagram');
+        return;
+      }
       S.mode = b.dataset.mode;
       if (S.nv > maxVars()) { S.nv = maxVars(); reseed(); }
       const inp = document.getElementById('src');
