@@ -5,20 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Boolean Algebra Explorer — CS1800</title>
 <link rel="stylesheet" href="./style.css">
-<link rel="stylesheet" id="themeCss" href="./themes/base.css">
-<script>
-  /* Set the theme before first paint, so switching does not flash the
-     base look. The name is whitelisted rather than interpolated. */
-  (function () {
-    var ok = ['base', 'desmos', 'editorial', 'linear', 'notebook'];
-    var t = new URLSearchParams(location.search).get('theme');
-    if (ok.indexOf(t) > 0) {
-      document.getElementById('themeCss').href = './themes/' + t + '.css';
-    }
-  })();
-</script>
 </head>
 <body>
+<div class="topbar">
 <header>
   <h1>Boolean Algebra Explorer</h1>
   <div class="modes" id="modeToggle" role="tablist" aria-label="view">
@@ -30,16 +19,8 @@
     <span id="varPick" class="seg"></span>
   </label>
   <button id="examplesBtn" class="ghost">examples ▾</button>
-  <label class="vars themepick">look
-    <select id="themePick">
-      <option value="base">base</option>
-      <option value="desmos">Desmos</option>
-      <option value="editorial">editorial</option>
-      <option value="linear">Linear (dark)</option>
-      <option value="notebook">notebook</option>
-    </select>
-  </label>
 </header>
+</div>
 
 <main>
   <section class="viewer" id="viewer" aria-label="viewer"></section>

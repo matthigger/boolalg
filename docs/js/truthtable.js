@@ -9,21 +9,25 @@
    Only the output column is clickable; the intermediate columns are
    working, not state.
 
-   The table is laid out to a constant total width. Applying a law adds
-   and removes working columns, and if the table were free to resize,
-   every column -- including A, B, C -- would slide sideways under the
-   reader's eye on each step. Instead the variable columns get a fixed
-   width and the working columns share a fixed block between them, so
-   the whole table keeps its size and the variables keep their place;
-   only the working columns get narrower as more of them appear. */
+   Applying a law adds and removes working columns, and if the table
+   were free to resize and centre itself, every column -- including
+   A, B, C -- would slide sideways under the reader's eye on each step.
+
+   So the *wrapper* is a constant width and is what gets centred, and
+   the table is left-aligned inside it. The variable columns therefore
+   start at the same x for the life of a derivation, while the table's
+   right edge is free to come in as the expression simplifies. Holding
+   the table itself to a constant width instead would leave a 288px
+   hole in the middle of it once the last working column went away. */
 
 import { el, clear } from './dom.js';
 import { toText } from './text.js';
 import { evalAt, isChain } from './core.js';
 
 const VAR_W = 42;       // px per variable column
-const WORK_BLOCK = 300; // px shared by however many working columns
-const OUT_W = 116;      // px for the output column
+const WORK_BLOCK = 288; // px shared by however many working columns
+const OUT_W = 156;      // px for the output column, which carries the
+                        // whole expression and so needs the most room
 const MAX_WORK = 6;
 
 /* Operator nodes in evaluation order, root last. */
@@ -56,21 +60,18 @@ export function render(host, opts) {
   const cols = showWork ? inner.slice(-MAX_WORK) : [];
 
   // One <col> per column, so the widths above are what actually happens
-  // rather than a suggestion the browser may ignore. The per-column
-  // width is floored to a whole pixel and the remainder parked in the
-  // spacer: WORK_BLOCK / cols.length is rarely an integer, and letting
-  // the browser round five fractional columns moves the table by a
-  // pixel or three -- which is the jump this whole scheme exists to
-  // prevent. The spacer is always present so the arithmetic is the same
-  // whether or not there are working columns to show.
+  // rather than a suggestion the browser may ignore. Per-column width is
+  // floored to a whole pixel: WORK_BLOCK / cols.length is rarely an
+  // integer, and letting the browser round five fractional columns moved
+  // the table by a pixel or three -- exactly the drift this is here to
+  // stop.
   const workW = cols.length ? Math.floor(WORK_BLOCK / cols.length) : 0;
-  const slack = WORK_BLOCK - workW * cols.length;
-  const total = nv * VAR_W + WORK_BLOCK + OUT_W;
+  const tableW = nv * VAR_W + workW * cols.length + OUT_W;
+  const wrapW = nv * VAR_W + WORK_BLOCK + OUT_W;
   const group = el('colgroup', {}, [
     ...Array.from({ length: nv }, () =>
       el('col', { style: `width:${VAR_W}px` })),
     ...cols.map(() => el('col', { style: `width:${workW}px` })),
-    el('col', { class: 'spacer', style: `width:${slack}px` }),
     el('col', { style: `width:${OUT_W}px` }),
   ]);
 
@@ -81,7 +82,6 @@ export function render(host, opts) {
       class: 'sub' + (selNode && n === selNode ? ' selcol' : ''),
       text: label(n), title: label(n),
     })),
-    el('th', { class: 'spacer' }),
     el('th', { class: selNode === expr ? 'selcol' : '',
                text: label(expr), title: label(expr) }),
   ]);
@@ -99,7 +99,6 @@ export function render(host, opts) {
         el('td', { class: 'v', text: String((r >> (nv - 1 - i)) & 1) })),
       ...cols.map((n) => el('td', {
         class: vals.get(n) ? 'one' : '', text: vals.get(n) ? '1' : '0' })),
-      el('td', { class: 'spacer' }),
       el('td', {
         class: 'out' + (on ? ' one' : ''), text: on ? '1' : '0',
         title: 'click to flip this row',
@@ -109,14 +108,14 @@ export function render(host, opts) {
     rows.push(tr);
   }
 
-  const table = el('table', { class: 'tt', style: `width:${total}px` }, [
+  const table = el('table', { class: 'tt', style: `width:${tableW}px` }, [
     group,
     el('thead', {}, [head]),
     el('tbody', { onmouseleave: () => onHoverRow?.(null) }, rows),
   ]);
   // The trace has to clear when the pointer leaves the table by any
   // route, including out through the header or the table's own margin.
-  const wrap = el('div', { class: 'ttwrap',
+  const wrap = el('div', { class: 'ttwrap', style: `width:${wrapW}px`,
     onmouseleave: () => onHoverRow?.(null) }, [table]);
   host.appendChild(wrap);
 }

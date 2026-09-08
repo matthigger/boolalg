@@ -243,26 +243,32 @@ setTimeout(() => {
      slide sideways while the reader is looking at them -- */
   B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
   {
-    const table = () => document.querySelector('#viewer table.tt');
     const varXs = () => [...document.querySelectorAll('#viewer thead th.var')]
       .map((th) => Math.round(th.getBoundingClientRect().x)).join();
-    const width = () => Math.round(table().getBoundingClientRect().width);
+    const wrapBox = () => {
+      const b = document.querySelector('#viewer .ttwrap').getBoundingClientRect();
+      return `${Math.round(b.x)}+${Math.round(b.width)}`;
+    };
     const cols = () => document.querySelectorAll('#viewer thead th.sub').length;
 
     // Walk the whole derivation, not one step: the column count rises
     // and falls along the way, and the variables have to sit still for
-    // all of it.
-    const places = new Set(), widths = new Set(), counts = new Set();
+    // all of it. The table itself is meant to narrow as columns go --
+    // it is the wrapper that is pinned, and the wrapper that keeps the
+    // variables where they were.
+    const places = new Set(), wraps = new Set(), counts = new Set();
     for (let i = 0; i < 12; i++) {
-      places.add(varXs()); widths.add(width()); counts.add(cols());
+      places.add(varXs()); wraps.add(wrapBox()); counts.add(cols());
       const p = B.plan();
       if (!p || p.done || !p.ok) break;
       B.applyNext();
     }
-    ok('the derivation ran several steps', S.lines.length > 3, `${S.lines.length} lines`);
+    ok('the derivation ran several steps', S.lines.length > 3,
+       `${S.lines.length} lines`);
     ok('and varied the working columns', counts.size > 1, [...counts].join());
+    ok('right down to none at all', counts.has(0), [...counts].join());
     eqv('A, B, C never moved', places.size, 1);
-    eqv('and the table never resized', widths.size, 1);
+    eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
   document.getElementById('out').textContent =
