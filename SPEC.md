@@ -901,6 +901,16 @@ move. (A table left to size itself inside the fixed wrapper is squeezed
 to fit instead, which compresses the variable columns — the one thing
 the wrapper exists to prevent.)
 
+The wrapper's constant is **measured, not budgeted**: it is the width
+the seed line's own table takes, read off an off-screen copy of its
+header, and the seed lasts exactly as long as the derivation does. A
+budget has to be wide enough for the widest table it will ever hold,
+and one sized for three variables leaves a four-variable table hanging
+off the wrapper's right while the wrapper stays centred for something
+narrower — dead space on the left and clipping on the right at once.
+Measured, the table is centred when it fits and flush left when it does
+not, so the overflow is all on one side and reachable by scrolling.
+
 Clicking an output cell flips that bit, with the same reset semantics as
 §8.2 — the two viewers are the same editor on the same mask.
 Intermediate columns are **not** clickable: only the output column

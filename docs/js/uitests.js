@@ -297,6 +297,34 @@ setTimeout(async () => {
     eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
+  /* -- a four-variable table is centred like any other. The wrapper
+     used to reserve a fixed width that only three variables fit, which
+     left the wide table hanging off its right while the wrapper stayed
+     centred for a narrower one: dead space on the left, clipped on the
+     right. -- */
+  B.load('(C & B) | (~C & B) | (A & ~B) | (B & ~C & ~D) | (D & A & ~B)',
+         'logic');
+  {
+    const body = document.querySelector('#viewer .tt-pane .panebody');
+    const tbl = document.querySelector('#viewer table.tt');
+    const bb = body.getBoundingClientRect(), tb = tbl.getBoundingClientRect();
+    // clientWidth spans both paddings and stops short of the scrollbar
+    // gutter, so it is the width the table actually has to sit in.
+    const cs = getComputedStyle(body);
+    const left = tb.x - (bb.x + parseFloat(cs.paddingLeft));
+    const right = bb.x + body.clientWidth - parseFloat(cs.paddingRight)
+                - tb.right;
+    eqv('four variables get four columns',
+        document.querySelectorAll('#viewer thead th.var').length, 4);
+    // Centred when it fits; flush left when it does not, so the whole
+    // of the overflow is reachable by scrolling right. What must never
+    // happen is both at once.
+    if (right >= 0) ok('the table is centred', Math.abs(left - right) <= 2,
+                       `left ${Math.round(left)} right ${Math.round(right)}`);
+    else ok('a table too wide to fit starts at the left edge',
+            Math.abs(left) <= 2, `left ${Math.round(left)}`);
+  }
+
   /* -- DeMorgan reaches a negated chain of any length -- */
   {
     const rule = (name) => [...document.querySelectorAll('.rule-row button.r')]
