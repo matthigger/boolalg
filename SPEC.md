@@ -777,7 +777,12 @@ operator's identity, `T` for `∧` and `F` for `∨`, not a malformed node.
 
 Three circles of equal radius, centres on an equilateral triangle at
 distance ≈ 0.55·r from the figure centre (the standard symmetric
-3-Venn); two circles for `n = 2`; for `n = 4`, see §12.
+3-Venn); two circles for `n = 2`; one centred circle for `n = 1`; for
+`n = 4`, see §12.
+
+One variable draws one circle. Padding the figure out to two would put a
+set on the page that the expression never mentioned, labelled with a
+letter that was never declared.
 
 Each of the `2^n` regions is an **independent SVG path**, precomputed
 from circle–circle arc intersections, so regions fill and hit-test
@@ -906,7 +911,14 @@ defines the mask.
 The circuit is a direct rendering of the **selected line's** AST: one
 gate per operator node, standard distinctive-shape symbols (AND, OR,
 inverter bubble for `¬`), variable inputs on the left, single output on
-the right. Layered layout by longest path from the inputs; wires as
+the right labelled `Y`.
+
+An expression that is a bare variable or constant has **no gates**, and
+is drawn as that source and its lead alone — `A ─────`, with no `Y`,
+because there is no gate between the two for the output name to
+distinguish. The input buses are built from gate inputs, so without this
+case a simplification down to `A` drew no left-hand label at all and
+left the bare `Y` standing for it. Layered layout by longest path from the inputs; wires as
 orthogonal polylines with junction dots where a variable fans out.
 
 Gates are **2-input**, so an n-ary chain (§4) is binarised at draw time,
@@ -1073,8 +1085,10 @@ run.
 ## 12. Variable count
 
 `n` is not a control. The expression says how many variables it has, and
-`n` follows it; the empty state opens at `n = 3`. A picker would only
-let a reader put the tool into a state its own expression contradicts.
+`n` follows it, down to `n = 1`; the empty state opens at `n = 3`. A
+picker would only let a reader put the tool into a state its own
+expression contradicts, and a floor of two would invent a variable the
+expression never declared (§8.1).
 
 `n = 4` is **logic and circuit only**: a 16-row truth table and a deeper
 circuit cost nothing, but a faithful 4-set Venn needs four ellipses,

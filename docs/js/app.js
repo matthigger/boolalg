@@ -924,7 +924,7 @@ function showLaw(group) {
   const law = LAWS[group];
   const need = Math.max(1, ...law.demos.flat()
     .map((src) => maxVar(parse(src).expr) + 1));
-  const nv = S.mode === 'sets' ? Math.max(2, need) : need;
+  const nv = need;
 
   // A law whose two sides disagree is a broken rule table, not a
   // teaching point -- say so rather than drawing it as fact.
@@ -1018,7 +1018,7 @@ function load(src, mode) {
   const { expr, letters } = parse(src);
   if (mode) S.mode = mode;
   fitMode(letters.length);
-  S.nv = Math.max(2, Math.min(maxVars(), letters.length));
+  S.nv = Math.max(1, Math.min(maxVars(), letters.length));
   setExpr(expr, letters);
   document.getElementById('src').value = toText(expr, notn(), S.letters);
   render();
@@ -1212,7 +1212,7 @@ function boot() {
       const { expr, letters } = parse(v);
       err.textContent = '';
       fitMode(letters.length);
-      S.nv = Math.max(2, Math.min(maxVars(), letters.length));
+      S.nv = Math.max(1, Math.min(maxVars(), letters.length));
       setExpr(expr, letters);
       render();
       // Echo back what was understood: someone who typed \cup sees the

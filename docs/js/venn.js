@@ -13,7 +13,15 @@
 import { svg, clear } from './dom.js';
 
 export function geometry(nv) {
-  if (nv <= 2) {
+  /* One variable is one circle, centred. Padding the diagram out to two
+     would put a second circle on the page for a set the expression never
+     mentioned, labelled with a letter that was never declared. */
+  if (nv <= 1) {
+    return { w: 260, h: 250,
+      circles: [{ cx: 130, cy: 122, r: 74 }],
+      labels: [{ x: 72, y: 56 }] };
+  }
+  if (nv === 2) {
     return { w: 260, h: 250,
       circles: [{ cx: 98, cy: 122, r: 66 }, { cx: 162, cy: 122, r: 66 }],
       labels: [{ x: 46, y: 60 }, { x: 214, y: 60 }] };

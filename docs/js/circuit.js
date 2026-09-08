@@ -76,6 +76,13 @@ function build(expr, sel) {
 }
 
 function layout(g, nv) {
+  /* A bare variable or constant has no gates at all: the whole circuit
+     is one labelled source and its lead. The box is still a circuit-
+     sized one, because the svg is drawn at the pane's full width and a
+     box tight around two glyphs would be scaled up until the letter
+     dwarfed the same letter in every other circuit. */
+  if (!g.gates.length) return { leaves: [], w: 280, h: 100, maxD: 0 };
+
   const depth = (r) => r.kind !== 'gate' ? 0
     : 1 + Math.max(...g.gates[r.id].inputs.map(depth));
   let slot = 0;
@@ -157,6 +164,27 @@ export function render(host, opts) {
     return vals.gateVal.get(r.id);
   };
   const wcls = (r) => 'wire' + (val(r) === true ? ' on' : '');
+
+  /* The gateless case. The buses below are built from gate inputs, so
+     with no gates nothing was drawn on the left, and outX returns null
+     for a non-gate, which left a malformed output lead and the bare
+     letter Y standing for an expression that is really just A. */
+  if (!g.gates.length) {
+    const cx = L.w / 2, cy = L.h / 2;
+    const on = val(g.out) === true;
+    const d = `M${cx - 34},${cy} H${cx + 46}`;
+    root.appendChild(svg('text', { class: 'ilabel', x: cx - 46, y: cy + 5 },
+      [g.out.kind === 'var' ? (letters[g.out.i] ?? '?')
+                            : (g.out.v ? 'T' : 'F')]));
+    if (g.out.sel) root.appendChild(svg('path', { class: 'wire-hl', d }));
+    root.appendChild(svg('path', { class: wcls(g.out), d }));
+    if (vals) {
+      root.appendChild(svg('text', { class: 'wval' + (on ? ' on' : ''),
+        x: cx - 24, y: cy - 5 }, [on ? '1' : '0']));
+    }
+    host.appendChild(root);
+    return;
+  }
 
   // Variable buses on the left, one column each, with junction dots.
   const busX = (i) => BUS0 + i * BUSW;

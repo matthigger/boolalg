@@ -549,6 +549,44 @@ setTimeout(async () => {
     eqv('and echoes back as glyphs', inp.value, 'A ∨ (B ∧ ¬C)');
   }
 
+  /* -- one variable is one circle, and one labelled wire -- */
+  {
+    const vlabels = () => [...document.querySelectorAll('#viewer .vlabel')]
+      .map((n) => n.textContent);
+    const clabels = () => [...document.querySelectorAll('#viewer .ilabel')]
+      .map((n) => n.textContent);
+
+    B.load('A^C', 'sets');
+    eqv('a one-variable expression is one variable wide', S.nv, 1);
+    eqv('and draws one circle',
+        document.querySelectorAll('#viewer .vcircle').length, 1);
+    eqv('labelled with the variable it has', vlabels().join(), 'A');
+    ok('and never with a letter that was not declared',
+       !vlabels().includes('?'));
+    eqv('with an inside and an outside to click',
+        document.querySelectorAll('#viewer .vregion').length, 2);
+
+    B.load('A u B', 'sets');
+    eqv('two variables still draw two',
+        document.querySelectorAll('#viewer .vcircle').length, 2);
+
+    // A circuit with no gates: the buses are built from gate inputs, so
+    // this used to draw nothing but the output label Y.
+    B.load('A', 'circuit');
+    eqv('a bare variable is labelled by its letter', clabels().join(), 'A');
+    ok('and carries no output label', !clabels().includes('Y'));
+    eqv('drawn as a single wire',
+        document.querySelectorAll('#viewer svg.circuit .wire').length, 1);
+
+    B.load('1', 'circuit');
+    eqv('a bare constant names itself', clabels().join(), 'T');
+
+    B.load('A & B', 'circuit');
+    ok('a circuit with gates still has an output',
+       clabels().includes('Y'), clabels().join());
+    B.load('A u B', 'sets');
+  }
+
   /* -- exports (SPEC.md 16) -- */
   {
     const bar = (sel) => [...document.querySelectorAll(sel + ' button.exp')]
