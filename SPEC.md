@@ -82,34 +82,37 @@ along with the rest.
 
 ## 3. Screen layout
 
-Single page: a header, a **viewer band** across the full width at the
-top, and beneath it a working band holding the expression pane with the
-algebra rail on its right. No whole-page scrolling on a laptop; panes
-scroll internally.
+Single page: a header, a **viewer band** across the top, the expression
+pane beneath it, and the algebra pane as a right rail beside both. No
+whole-page scrolling on a laptop; panes scroll internally.
 
-The viewer is on top, and spans the width, because it is the thing the
-whole tool exists to hold still (§2): it belongs where it can stay put
-while the work happens below it. The derivation grows downward toward
-the input that seeded it, and can grow long without pushing the picture
-off the screen.
+The viewer is on top because it is the thing the whole tool exists to
+hold still (§2): it belongs where it can stay put while the work happens
+below it. The derivation grows downward toward the input that seeded it,
+and can grow long without pushing the picture off the screen.
 
-The rules sit inside the working band rather than in a full-height rail
-because they act on the derivation beside them, not on the diagram. In
-that shorter column the rule list scrolls and the actions do not: the
-primary action of the pane is not something to go looking for.
+The rail spans both rows but is **not stretched to them**: it is as tall
+as the rules and the buttons under them, rather than trailing an empty
+card to the foot of the page. On a window too short for that, the rule
+list scrolls and the actions do not — the primary action of the pane is
+not something to go looking for.
+
+The viewer band is held to a little under half the window. It is the
+tallest thing on the page and the least dense, so it is where vertical
+space is worth reclaiming for the derivation below it.
 
     ┌──────────────────────────────────────────────────────────────┐
     │  Boolean Algebra Explorer  [ SETS | LOGIC | CIRCUIT ]         │
-    ├─────────────────────┬────────────────────────────────────────┤
-    │  TRUTH TABLE        │  CIRCUIT                    PNG CSV TEX│
+    ├─────────────────────┬──────────────────┬─────────────────────┤
+    │  TRUTH TABLE        │  CIRCUIT  PNG CSV│  ALGEBRA            │
     │  A B C │ ¬C │ out   │                  │  Associative     ⓘ  │
     │  0 0 0 │  1 │  0    │    ─┤&  ┐        │  Double Negation ⓘ  │
     │  0 0 1 │  0 │  1  ←─┼──── └── │≥1──    │  DeMorgan's   [x2]ⓘ │
     │  0 1 0 │  1 │  0    │         │        │  Distributive [x2]ⓘ │
     │  ...                │                  │  Absorption   [x2]ⓘ │
     │                     │                  │  Complement   [x2]ⓘ │
-    ├─────────────────────┴────────────────────┬─────────────────────┤
-    │ [examples▾]   STEP MARKS[on|off] PNG TEX │  ALGEBRA            │
+    ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
+    │ [examples▾]   STEP MARKS[on|off] PNG TEX│  Identity     [x2]ⓘ │
     │                                        │  Domination   [x2]ⓘ │
     │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
     │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │

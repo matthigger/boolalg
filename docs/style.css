@@ -96,15 +96,12 @@ header .modes { margin-left: 4px; }
 
 /* ---- layout ---- */
 main {
-  display: grid; gap: 14px; padding: 14px;
+  display: grid; gap: 12px; padding: 12px;
   flex: 1; min-height: 0;
   width: 100%; max-width: var(--app-max); margin-inline: auto;
-  /* The viewer spans the full width: it is the thing the whole tool is
-     about holding still, and it reads worse cramped. The rules sit
-     inside the working band, beside the derivation they act on. */
   grid-template-columns: 1fr 250px;
-  grid-template-rows: minmax(260px, 48%) minmax(280px, 1fr);
-  grid-template-areas: "viewer viewer" "expr algebra";
+  grid-template-rows: minmax(240px, 46%) minmax(240px, 1fr);
+  grid-template-areas: "viewer algebra" "expr algebra";
 }
 /* Each region is a card: no borders, just a lift off the field. */
 .viewer, .expression, .algebra {
@@ -114,19 +111,22 @@ main {
 .viewer { grid-area: viewer; display: flex; }
 .expression { grid-area: expr; padding: 18px 22px; overflow: auto;
               display: flex; flex-direction: column; }
-/* The rules scroll; the actions do not. In the working band the rail is
-   short enough that a scrolling rail put Simplify below the fold, and
-   the primary action of the pane is not something to go looking for. */
-.algebra { grid-area: algebra; overflow: hidden; padding: 14px;
+/* The rail spans both rows but is not stretched to them: align-self
+   start leaves it as tall as the rules and the buttons under them,
+   rather than trailing an empty card down the page. max-height keeps it
+   inside the grid area on a short window, where the rules scroll and
+   the actions, being flex:none, stay put. */
+.algebra { grid-area: algebra; align-self: start; max-height: 100%;
+           overflow: hidden; padding: 14px;
            display: flex; flex-direction: column; }
-.algebra .rules { flex: 1; min-height: 0; overflow: auto; }
+.algebra .rules { min-height: 0; overflow: auto; }
 
 /* ---- viewer ---- */
 .pane { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .pane + .pane { border-left: 1px solid var(--line); }
 .pane h2 {
   font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
-  color: var(--muted); margin: 14px 18px 6px; font-weight: 600;
+  color: var(--muted); margin: 11px 18px 4px; font-weight: 600;
   display: flex; align-items: center; gap: 10px;
 }
 /* Export sits with the thing it exports, at the end of its heading. */
@@ -153,7 +153,7 @@ main {
                color: var(--muted); }
 .marks .seg { padding: 2px; }
 .marks .seg button { padding: 3px 10px; font-size: 11px; }
-.panebody { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px;
+.panebody { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 8px;
              display: flex; align-items: center; justify-content: center;
              /* Reserve the scrollbar gutter always. Header wrapping
                 changes the table's height, and a scrollbar appearing
@@ -169,10 +169,10 @@ main {
 .pane.tt-pane .panebody { display: block; }
 /* The table needs more of the row than the circuit does. */
 .pane.tt-pane { flex: 1.25; }
-.caption { font-size: 12.5px; color: var(--muted); margin: 4px 18px 12px; }
+.caption { font-size: 12.5px; color: var(--muted); margin: 2px 18px 9px; }
 
 svg.venn { display: block; margin: 0 auto; cursor: pointer;
-           height: 100%; max-height: 330px; width: auto; }
+           height: 100%; max-height: 296px; width: auto; }
 .minivenn svg.venn { height: 190px; }
 .vregion { fill: transparent; }
 .vregion.on { fill: var(--accent); fill-opacity: .30; }
@@ -200,7 +200,7 @@ table.tt { border-collapse: collapse; table-layout: auto;
            font-variant-numeric: tabular-nums;
            font-size: 16px; margin: 0; }
 table.tt th, table.tt td {
-  border: 1px solid var(--line); padding: 7px 9px; text-align: center;
+  border: 1px solid var(--line); padding: 5px 9px; text-align: center;
 }
 /* Headers stay on one line. A header broken over three lines is as
    hard to read as a truncated one, and the column can simply be as wide
