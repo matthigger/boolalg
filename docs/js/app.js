@@ -576,6 +576,8 @@ function toUrl() {
   const p = new URLSearchParams();
   p.set('mode', S.mode);
   p.set('n', S.nv);
+  const th = document.getElementById('themePick');
+  if (th && th.value !== 'base') p.set('theme', th.value);
   if (cur()) p.set('e', toText(S.lines[0].expr, 'logic', S.letters));
   return location.origin + location.pathname + '?' + p.toString();
 }
@@ -675,6 +677,22 @@ function boot() {
       render();
     };
   }
+  /* The look is one stylesheet swap, so flipping between themes keeps
+     whatever derivation you are in the middle of. Absent in the test
+     pages, which load style.css bare. */
+  const themeLink = document.getElementById('themeCss');
+  const themePick = document.getElementById('themePick');
+  if (themeLink && themePick) {
+    const now = /([a-z]+)\.css$/.exec(themeLink.getAttribute('href'));
+    if (now) themePick.value = now[1];
+    themePick.onchange = () => {
+      themeLink.href = `./themes/${themePick.value}.css`;
+      const u = new URL(location.href);
+      u.searchParams.set('theme', themePick.value);
+      history.replaceState(null, '', u);
+    };
+  }
+
   document.getElementById('examplesBtn').onclick = showExamples;
   document.getElementById('simplify').onclick = runAll;
   document.getElementById('hintExpr').onclick = () => doHint(1);

@@ -1,0 +1,87 @@
+/* Observable-like: a technical notebook.
+
+   Data first. Monospace for anything you read a value out of, square
+   corners, hairline rules, almost no colour beyond the two that carry
+   meaning. Denser than the others on purpose -- more of the truth table
+   is on screen at once. */
+
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --ink: #1b1e23;
+  --muted: #8e9296;
+  --line: #d8dade;
+  --accent: #3b5fc0;
+  --accent-soft: #3b5fc016;
+  --accent-mid: #3b5fc03d;
+  --sel: #12866a;
+  --sel-soft: #12866a16;
+  --sel-mid: #12866a3d;
+  --panel-2: #f7f7f8;
+  --active: #f4f6fb;
+  --wash: #fbf0cd;
+  --trace: #f6f4ee;
+  --trace-on: #ece7d6;
+  --hintbg: #fbf0cd;
+  --dim: #c0c3c7;
+  --ink-soft: #55595e;
+  --scrim: #1b1e2359;
+  --shadow: 0 8px 28px #1b1e2326;
+  --radius: 0px;
+  --radius-lg: 2px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+          sans-serif;
+  --font-num: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+              monospace;
+  --font-expr: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+               monospace;
+}
+
+body { font-size: 14px; }
+
+header {
+  padding: 9px 16px; border-bottom: 1px solid var(--ink);
+}
+h1 { font-size: 14px; font-weight: 700; letter-spacing: -.1px; }
+
+.modes button, .seg button {
+  border-radius: 0; padding: 4px 12px; font-size: 12px;
+  text-transform: lowercase; letter-spacing: .02em;
+}
+.modes button:first-child, .modes button:last-child,
+.seg button:first-child, .seg button:last-child { border-radius: 0; }
+
+.pane h2 {
+  font-size: 10px; letter-spacing: .13em; margin: 10px 14px 4px;
+  font-weight: 700; color: var(--ink);
+}
+.caption { font-size: 11.5px; font-family: var(--font-num); }
+.algebra { border-left: 1px solid var(--line); }
+
+/* The table is the hero: tight rows, tabular figures, rules not boxes. */
+table.tt { font-size: 14.5px; }
+table.tt th, table.tt td {
+  padding: 3px 7px; border: 0; border-bottom: 1px solid var(--line);
+}
+table.tt th {
+  background: none; border-bottom: 1.5px solid var(--ink);
+  font-family: var(--font-num); font-size: 12px; font-weight: 500;
+  color: var(--ink);
+}
+table.tt th.var { font-size: 13px; font-weight: 700; }
+table.tt tbody tr:last-child td { border-bottom: 1px solid var(--ink); }
+table.tt td.v { color: var(--ink); }
+table.tt .spacer { border-bottom: 0; }
+
+.lines { font-size: 17px; line-height: 1.95; }
+.dline { border-radius: 0; }
+.expr .nd { border-radius: 0; }
+
+.rule-row > button.r {
+  border-radius: 0; font-size: 12.5px; padding: 4px 6px;
+  font-family: var(--font-num);
+}
+button.info { border-radius: 0; width: 18px; height: 18px; }
+button.primary, button.ghost { border-radius: 0; font-size: 12.5px; }
+.entry input { border-radius: 0; font-family: var(--font-num); font-size: 14px; }
+.card { border: 1px solid var(--ink); }
