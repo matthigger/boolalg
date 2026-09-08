@@ -23,16 +23,16 @@
 
   <section class="expression" id="expression" aria-label="expression">
     <div class="entry">
+      <div class="toolrow">
+        <div class="oppad" id="opPad"></div>
+        <button id="examplesBtn" class="ghost">get example</button>
+        <span class="barright" id="exprExport"></span>
+      </div>
       <div class="entryrow">
         <label for="src">start from</label>
         <input id="src" spellcheck="false" autocomplete="off"
                placeholder="(A u B)^C   or   (A \cup B)\complement">
         <span class="err" id="srcErr"></span>
-      </div>
-      <div class="toolrow">
-        <div class="oppad" id="opPad"></div>
-        <button id="examplesBtn" class="ghost">get example</button>
-        <span class="barright" id="exprExport"></span>
       </div>
     </div>
     <div class="lines" id="lines"></div>

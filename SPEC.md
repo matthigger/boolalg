@@ -112,9 +112,9 @@ space is worth reclaiming for the derivation below it.
     │  ...                │                  │  Absorption   [x2]ⓘ │
     │                     │                  │  Complement   [x2]ⓘ │
     ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
-    │  start from: [ (A ^ B) v ~C          ] │  Identity     [x2]ⓘ │
-    │  ∧ ∨ ¬ − ⊕ ( ) T F  [get example]      │  Domination   [x2]ⓘ │
-    │             STEP MARKS[on|off] PNG TEX │  Commutative  [x2]ⓘ │
+    │  ∧ ∨ ¬ − ⊕ ( ) T F  [get example]      │  Identity     [x2]ⓘ │
+    │             STEP MARKS[on|off] PNG TEX │  Domination   [x2]ⓘ │
+    │  start from: [ (A ^ B) v ~C          ] │  Commutative  [x2]ⓘ │
     │  ────────────────────────────────────  │                     │
     │    (A ∧ B) ∨ ¬C                        │  [ Simplify ]       │
     │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │
@@ -132,10 +132,11 @@ sits beside the title, where it names what the viewer band is currently
 showing. There is no variable-count control: the expression says how
 many variables it has (§12).
 
-The expression pane opens with the input that starts a derivation, and
-the derivation grows downward from it. Under the input sits one row of
-controls: the operator keys, `get example` (§3.1), and at the right a
-step-marks toggle and the export controls (§16). Step marks are
+The expression pane opens with one row of controls — the operator keys,
+`get example` (§3.1), and at the right a step-marks toggle and the
+export controls (§16) — then the input that starts a derivation, and
+then the derivation growing downward from it. The keys sit above the box
+they type into, in reach before the cursor is in it. Step marks are
 deliberately a segment in the view toggle's idiom rather than a third
 pill beside PNG and TEX — they change how the derivation is drawn, they
 do not produce a file.
