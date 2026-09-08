@@ -139,7 +139,7 @@ then the derivation growing downward from it. The keys sit above the box
 they type into, in reach before the cursor is in it. Step marks are
 deliberately a segment in the view toggle's idiom rather than a third
 pill beside PNG and TEX — they change how the derivation is drawn, they
-do not produce a file.
+do not produce an export.
 
 Every operator glyph has a key in that row. None of them are on a
 keyboard, and the LaTeX spellings that are (§5.4) are only known to
@@ -1245,9 +1245,12 @@ additive — a student never needs to see it — and lives behind an
 
 **Built:** the truth table exports as PNG, CSV or a LaTeX `tabular`; the
 derivation as PNG or an `align*` (§16.2); the circuit and the Venn as
-PNG. Each
-control sits in the heading of the thing it exports, and every file is
-named after the expression. Rasters are drawn on a canvas rather than
+PNG. Each control sits in the heading of the thing it exports. A raster
+downloads as a file named after the expression; CSV and LaTeX are copied
+to the clipboard instead, being on their way into a document that is
+already open. One button per format, and its icon says which happens —
+an arrow into a tray for the file, two sheets for the copy. Rasters are
+drawn on a canvas rather than
 lifted from the DOM — going through a `foreignObject` would mean
 carrying the whole stylesheet along to arrive at the same grid of short
 strings — except the circuit, which is already SVG and is serialised

@@ -333,16 +333,52 @@ function stepMarks() {
 const exportBase = () => Ex.slug(cur() ? toText(cur(), notn(), S.letters)
                                        : 'expression');
 
+/* An icon per destination, drawn rather than typed: the unicode
+   download and copy characters are missing from enough system fonts to
+   arrive as boxes. Keyed by the destination so a button's icon and its
+   data-out cannot disagree. */
+const OUT_ICON = {
+  file: () => svg('svg', { class: 'ico', viewBox: '0 0 24 24',
+                           'aria-hidden': 'true' }, [
+    svg('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' }),
+    svg('path', { d: 'M7 10l5 5 5-5' }),
+    svg('path', { d: 'M12 15V3' }),
+  ]),
+  clip: () => svg('svg', { class: 'ico', viewBox: '0 0 24 24',
+                           'aria-hidden': 'true' }, [
+    svg('rect', { x: 9, y: 9, width: 13, height: 13, rx: 2 }),
+    svg('path', { d: 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1'
+                     + ' 2 2v1' }),
+  ]),
+};
+
 function exportBar(items) {
-  return el('span', { class: 'exports' }, items.map(([name, fn]) =>
-    el('button', {
-      class: 'exp', text: name, type: 'button',
-      title: `download as ${name}`,
-      onclick: async () => {
-        try { await fn(); } catch (e) { toast(`export failed: ${e.message}`); }
-      },
-    })));
+  return el('span', { class: 'exports' }, items);
 }
+
+/* One button per format, its icon saying where the export lands. Both
+   kinds report their own failure -- a canvas that will not encode and a
+   clipboard the browser refused both surface here. */
+function expBtn(name, out, title, run) {
+  return el('button', {
+    class: 'exp', type: 'button', title, 'aria-label': title,
+    data: { out },
+    onclick: async () => {
+      try { await run(); } catch (e) { toast(`export failed: ${e.message}`); }
+    },
+  }, [el('span', { text: name }), OUT_ICON[out]()]);
+}
+
+const pngOut = (run) => expBtn('png', 'file', 'download as png', run);
+
+/* Text leaves by clipboard rather than as a file: a tabular or an
+   align* is on its way into a .tex the instructor already has open, so
+   pasting it beats a trip through the downloads folder. */
+const textOut = (name, text) =>
+  expBtn(name, 'clip', `copy the ${name} to the clipboard`, async () => {
+    await navigator.clipboard.writeText(text());
+    toast(`${name} copied`);
+  });
 
 const tableData = () => Ex.tableData({
   expr: cur(), nv: S.nv, letters: S.letters, mode: notn(),
@@ -350,34 +386,31 @@ const tableData = () => Ex.tableData({
 
 function tableExports() {
   return exportBar([
-    ['png', () => Ex.canvasPNG(Ex.tablePNG(tableData()),
-                               `${exportBase()}-table.png`)],
-    ['csv', () => Ex.save(`${exportBase()}-table.csv`,
-                          Ex.tableCSV(tableData()), 'text/csv')],
-    ['tex', () => Ex.save(`${exportBase()}-table.tex`,
-                          Ex.tableTeX(tableData(),
-                            `Truth table for ${toText(cur(), notn(), S.letters)}`),
-                          'application/x-tex')],
+    pngOut(() => Ex.canvasPNG(Ex.tablePNG(tableData()),
+                              `${exportBase()}-table.png`)),
+    textOut('csv', () => Ex.tableCSV(tableData())),
+    textOut('tex', () => Ex.tableTeX(tableData(),
+      `Truth table for ${toText(cur(), notn(), S.letters)}`)),
   ]);
 }
 
 function vennExports() {
   return exportBar([
-    ['png', async () => {
+    pngOut(async () => {
       const g = document.querySelector('#viewer svg.venn');
       if (!g) throw new Error('nothing drawn yet');
       Ex.canvasPNG(await Ex.svgPNG(g), `${exportBase()}-venn.png`);
-    }],
+    }),
   ]);
 }
 
 function circuitExports() {
   return exportBar([
-    ['png', async () => {
+    pngOut(async () => {
       const g = circuitBody?.querySelector('svg.circuit');
       if (!g) throw new Error('nothing drawn yet');
       Ex.canvasPNG(await Ex.svgPNG(g), `${exportBase()}-circuit.png`);
-    }],
+    }),
   ]);
 }
 
@@ -400,12 +433,11 @@ function renderExprBar() {
     seg,
   ]));
   host.appendChild(exportBar([
-    ['png', () => Ex.canvasPNG(
-       Ex.derivationPNG(S.lines, notn(), S.letters, stepMarks()),
-       `${exportBase()}.png`)],
-    ['tex', () => Ex.save(`${exportBase()}.tex`,
-       Ex.derivationTeX(S.lines, notn(), S.letters, stepMarks()),
-       'application/x-tex')],
+    pngOut(() => Ex.canvasPNG(
+      Ex.derivationPNG(S.lines, notn(), S.letters, stepMarks()),
+      `${exportBase()}.png`)),
+    textOut('tex',
+      () => Ex.derivationTeX(S.lines, notn(), S.letters, stepMarks())),
   ]));
 }
 

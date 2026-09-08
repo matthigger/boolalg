@@ -591,12 +591,70 @@ setTimeout(async () => {
   {
     const bar = (sel) => [...document.querySelectorAll(sel + ' button.exp')]
       .map((b) => b.textContent);
+    const outs = (sel) => [...document.querySelectorAll(sel + ' button.exp')]
+      .map((b) => b.dataset.out);
 
     B.load('(C & B) | (~C & B)', 'logic');
     eqv('the table offers three formats',
         bar('.tt-pane h2 .exports').join(), 'png,csv,tex');
     eqv('the derivation offers both a picture and LaTeX',
         bar('#exprExport .exports').join(), 'png,tex');
+
+    /* The raster saves a file, the text formats copy (SPEC.md 16.1),
+       and one button each: the icon carries the difference, so every
+       button must have one and it must be the icon for its
+       destination. */
+    eqv('the table saves its png and copies its text',
+        outs('.tt-pane h2 .exports').join(), 'file,clip,clip');
+    eqv('and so does the derivation',
+        outs('#exprExport .exports').join(), 'file,clip');
+    {
+      const btns = [...document.querySelectorAll('.exports button.exp')];
+      ok('every export button carries exactly one icon',
+         btns.length > 3 && btns.every((b) =>
+           b.querySelectorAll('svg.ico').length === 1));
+      ok('and the copies say so',
+         btns.filter((b) => b.dataset.out === 'clip')
+           .every((b) => b.title === `copy the ${b.textContent} to the`
+                                     + ' clipboard'));
+    }
+
+    /* Clicked with the clipboard stubbed: a real write needs a
+       permission this page cannot grant itself. */
+    {
+      const clip = navigator.clipboard;
+      const real = clip.writeText;
+      let wrote = null;
+      clip.writeText = async (t) => { wrote = t; };
+      const tick = () => new Promise((r) => setTimeout(r, 0));
+      const btn = (sel, name) =>
+        [...document.querySelectorAll(sel + ' button.exp')]
+          .find((b) => b.textContent === name);
+      const note = document.getElementById('toast');
+
+      btn('.tt-pane h2 .exports', 'csv').click();
+      await tick();
+      eqv('the csv button copies the csv', wrote,
+          Ex.tableCSV(Ex.tableData({ expr: B.S.lines[0].expr, nv: B.S.nv,
+            letters: B.S.letters, mode: 'logic',
+            mask: mask(B.S.lines[0].expr, B.S.nv),
+            showWork: B.S.showWork })));
+      eqv('and says it did', note.textContent, 'csv copied');
+
+      btn('.tt-pane h2 .exports', 'tex').click();
+      await tick();
+      ok('the table tex button copies a tabular',
+         wrote.includes('\\begin{tabular}'), wrote.slice(0, 40));
+
+      btn('#exprExport .exports', 'tex').click();
+      await tick();
+      ok('the derivation tex button copies an align*',
+         wrote.includes('\\begin{align*}'), wrote.slice(0, 40));
+      eqv('and says it did', note.textContent, 'tex copied');
+
+      note.hidden = true;
+      clip.writeText = real;
+    }
 
     B.load('(A u B)^C', 'sets');
     eqv('the Venn offers a png',
