@@ -13,9 +13,11 @@ Sets mode shows the same expression as a Venn diagram:
 
 ![sets mode](media/sets-mode.png)
 
-- **docs/** — the app. Plain ES modules, no build step: open
-  `docs/index.html` through any static server, or just deploy the
-  folder. Tests are `docs/test.html` (core) and `docs/uitest.html`
+- **docs/** — the app. Plain ES modules, no build step: deploy the
+  folder, or run `python3 serve.py` and open the port it prints. Use
+  that rather than `python3 -m http.server`, which sends no
+  `Cache-Control` and will happily serve a stale module after an edit.
+  Tests are `docs/test.html` (core) and `docs/uitest.html`
   (interaction); both print `RESULT pass=N fail=N`.
 - **[SPEC.md](SPEC.md)** — the specification. Start here.
 - **reference/** — the CS1800 `logic_set_identities` handout (PDF +
@@ -28,7 +30,13 @@ Sets mode shows the same expression as a Venn diagram:
 - **patches/** — fixes for two errors the prototype found in
   `CS1800/problem_repo`. Not applied.
 
-Status: working prototype, 97 tests passing. Section 18 records
-every design decision with the evidence behind it — mostly the course's
-own problem sets and rubrics in `CS1800/problem_repo` — and lists what
-is still open.
+Expressions go in as symbols (`(A u B)^C`), words (`comp(sunny or
+warm)`) or LaTeX (`\overline{A \cup B}`), with a key of operator
+buttons for the glyphs no keyboard has. Variables can be named. Work
+comes out as PNG, CSV or LaTeX — the truth table, the derivation, and
+the circuit.
+
+Status: working prototype, 254 tests passing (108 core, 146
+interaction). Section 18 records every design decision with the evidence
+behind it — mostly the course's own problem sets and rubrics in
+`CS1800/problem_repo` — and lists what is still open.
