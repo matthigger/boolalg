@@ -52,7 +52,12 @@ export function rewritesOf(f) {
     // it, so a derivation reaching the empty set's complement had no
     // move left and stopped one step short of the universe.
     if (inner.k === 'const') add('Definition', cn(!inner.v));
-    if (isChain(inner) && inner.ts.length === 2) {
+    // Over the whole chain, however many terms it has. Restricting this
+    // to two would make the law inapplicable to any longer chain: the
+    // negation wraps the chain as a whole, and chains being n-ary
+    // (SPEC.md section 5.2.2) there is no regrouping step that could
+    // ever cut one down to a pair.
+    if (isChain(inner)) {
       add("DeMorgan's", ch(dual(inner.k), inner.ts.map(nt)));
     }
   }
@@ -111,6 +116,12 @@ export function rewritesOf(f) {
     if (ts.length > 2) {
       if (ts.some((t) => eq(t, z))) add('Domination', z);
       if (ts.every((t) => eq(t, ts[0]))) add('Idempotent', ts[0]);
+      // DeMorgan, collecting a whole run: not a and not b and not c
+      // = not (a or b or c). The pairwise form above reaches this in
+      // steps; this is the one step that mirrors distributing.
+      if (ts.every((t) => t.k === 'not')) {
+        add("DeMorgan's", nt(ch(dl, ts.map((t) => t.a))));
+      }
       if (ts.every((t) => isChain(t) && t.k === dl)) {
         for (const c of ts[0].ts) {
           if (!ts.every((t) => t.ts.some((x) => eq(x, c)))) continue;

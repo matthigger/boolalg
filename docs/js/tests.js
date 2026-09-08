@@ -333,6 +333,40 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
   eqv('slug never comes back empty', slug('\u2229\u222a'), 'expression');
 }
 
+/* ---- 12a. DeMorgan over a chain of any length ---------------------- */
+{
+  const dm = (src) => rewritesOf(parse(src).expr)
+    .filter((r) => r.group === "DeMorgan's")
+    .map((r) => toText(r.next));
+
+  // The reported case: a negation wrapping three terms. Chains are
+  // n-ary, so nothing could ever cut this down to a pair, and a binary
+  // DeMorgan simply never applied to it.
+  eqv('DeMorgan distributes over three terms',
+      dm('~(~C & B & ~A)').join(), '¬¬C ∨ ¬B ∨ ¬¬A');
+  eqv('and over two, as before', dm('~(A | B)').join(), '¬A ∧ ¬B');
+  eqv('and over four',
+      dm('~(A & B & C & A)').join(), '¬A ∨ ¬B ∨ ¬C ∨ ¬A');
+
+  // Collecting mirrors it: three negations come together in one step,
+  // as well as pairwise.
+  ok('DeMorgan collects a whole run',
+     dm('~A & ~C & ~B').includes('¬(A ∨ C ∨ B)'),
+     dm('~A & ~C & ~B').join(' | '));
+  ok('and still collects a pair out of it',
+     dm('~A & ~C & ~B').includes('¬(A ∨ C) ∧ ¬B'));
+
+  // Nothing is claimed that is not true.
+  let bad = '';
+  for (const src of ['~(~C & B & ~A)', '~A & ~C & ~B', '~(A | B | C)']) {
+    const e = parse(src).expr;
+    for (const r of rewritesOf(e)) {
+      if (mask(r.next, 3) !== mask(e, 3)) bad = `${src} -> ${toText(r.next)}`;
+    }
+  }
+  ok('every rewrite of these keeps the mask', !bad, bad);
+}
+
 /* ---- 12b. a complemented constant is reducible --------------------- */
 {
   // Other rules match a constant too, by expanding it; what matters is

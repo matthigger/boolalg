@@ -713,6 +713,9 @@ to test the assumption above rather than trust it. Full write-up in
 | + expanding Distributive | **13 / 13** | **200 / 200** |
 | the same, DeMorgan restricted to 2 terms | 13 / 13 | 200 / 200 |
 
+(That last row is why the restriction was adopted, and the bullet below
+is why it was later dropped.)
+
 So the design works, and it works cheaply: a mean of 2.8 steps and
 **5 to 7 expanded nodes** per expression, under a millisecond each. The
 caps above are three orders of magnitude larger than anything measured;
@@ -722,10 +725,21 @@ they exist to bound pathological input, not to be approached. The
 
 Two further findings carried into this spec:
 
-- **DeMorgan can stay binary.** Restricting it to two terms at a time,
-  faithful to the handout and to one-law-per-line (§6.2), costs nothing
-  in reachability — only a couple of extra expanded nodes. There is no
-  need for a k-ary form that would rewrite a whole chain in one step.
+- **DeMorgan cannot stay binary**, though the measurement above says it
+  can. What was measured is reachability of the *minimum* by the search,
+  and that is genuinely unaffected: a binary DeMorgan costs only a couple
+  of extra expanded nodes. What it does not measure is whether the law is
+  **applicable** where a student expects it, and there the binary form
+  fails outright. A negation wraps a chain as a whole, and chains are
+  n-ary (§5.2.2), so no regrouping step exists that could cut
+  `¬(¬C ∧ B ∧ ¬A)` down to a pair. Restricted to two terms, DeMorgan is
+  offered on no negated chain longer than two, and the rule sits greyed
+  out with nothing to explain why. The binary restriction and the n-ary
+  chain representation are simply inconsistent: having made Associative
+  implicit, the tool has to distribute a negation over every term at
+  once. It is still one law per line (§6.2). The collecting direction is
+  k-ary to match, so three negations come together in one step as well
+  as pairwise.
 - **Stage 1 is instant at `n = 3`** — 256 masks in 23 ms of unoptimised
   Python, so trivial in the browser. At `n = 4` the same DP is ~65 000x
   the pair work, which is minutes rather than milliseconds and rules it

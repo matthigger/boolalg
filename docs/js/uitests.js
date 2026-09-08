@@ -297,6 +297,29 @@ setTimeout(async () => {
     eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
+  /* -- DeMorgan reaches a negated chain of any length -- */
+  {
+    const rule = (name) => [...document.querySelectorAll('.rule-row button.r')]
+      .find((b) => b.textContent.startsWith(name));
+
+    B.load('~(A | C) & ~(~C & B & ~A)', 'logic');
+    S.sel = { path: [1], from: null, to: null };
+    B.render();
+    ok('DeMorgan is offered on a three-term negation',
+       !rule("DeMorgan").disabled, rule("DeMorgan").title);
+
+    const before = S.lines.length;
+    rule("DeMorgan").click();
+    eqv('and applying it adds a line', S.lines.length, before + 1);
+    eqv('labelled DeMorgan', S.lines.at(-1).rule, "DeMorgan's");
+    eqv('with the negation pushed onto each term',
+        toText(S.lines.at(-1).expr, 'logic'),
+        '¬(A ∨ C) ∧ (¬¬C ∨ ¬B ∨ ¬¬A)');
+    eqv('and the meaning unchanged',
+        mask(S.lines.at(-1).expr, 3), mask(S.lines[0].expr, 3));
+    S.sel = null;
+  }
+
   /* -- the example catalogue (SPEC.md 3.1) -- */
   {
     const card = () => document.querySelector('#overlay .card');
