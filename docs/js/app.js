@@ -719,6 +719,7 @@ function render() {
   renderViewer();
   renderLines();
   renderRules();
+  renderOpPad();
   const p = cur() ? plan() : null;
   document.getElementById('simplify').disabled = !cur() || !!p?.done;
   document.getElementById('simplify').textContent =
@@ -769,6 +770,57 @@ function padLetters() {
   S.letters = out;
 }
 
+/* ---- operator pad -------------------------------------------------- */
+
+/* Insert at the caret rather than appending, so the pad can be used
+   part-way through an expression. */
+function insertAtCaret(inp, s) {
+  const a = inp.selectionStart ?? inp.value.length;
+  const b = inp.selectionEnd ?? a;
+  inp.value = inp.value.slice(0, a) + s + inp.value.slice(b);
+  const c = a + s.length;
+  inp.focus();
+  inp.setSelectionRange(c, c);
+}
+
+/* Complement is postfix in sets and prefix in logic, so the pad has to
+   follow the notation rather than name one glyph for both. */
+function padKeys() {
+  const g = GLYPH[notn()];
+  const not = g.notPre ? { label: g.notPre, ins: g.notPre }
+                       : { label: 'x' + g.notPost, ins: g.notPost };
+  return [
+    { label: g.and, ins: ` ${g.and} `, title: 'and / intersection' },
+    { label: g.or, ins: ` ${g.or} `, title: 'or / union' },
+    { ...not, title: 'not / complement' },
+    null,
+    { label: g.diff, ins: ` ${g.diff} `, title: 'difference' },
+    { label: g.sym, ins: ` ${g.sym} `, title: 'symmetric difference' },
+    null,
+    { label: '( )', ins: '()', back: 1, title: 'brackets' },
+    { label: g.T, ins: g.T, title: 'everything' },
+    { label: g.F, ins: g.F, title: 'nothing' },
+  ];
+}
+
+function renderOpPad() {
+  const host = document.getElementById('opPad');
+  if (!host) return;
+  clear(host);
+  const inp = document.getElementById('src');
+  for (const k of padKeys()) {
+    if (!k) { host.appendChild(el('span', { class: 'gap' })); continue; }
+    host.appendChild(el('button', {
+      class: 'op', text: k.label, title: k.title, type: 'button',
+      onclick: () => {
+        insertAtCaret(inp, k.ins);
+        if (k.back) inp.setSelectionRange(inp.selectionStart - k.back,
+                                          inp.selectionStart - k.back);
+      },
+    }));
+  }
+}
+
 /* ---- boot --------------------------------------------------------- */
 
 function boot() {
@@ -809,6 +861,9 @@ function boot() {
       S.nv = Math.max(S.nv, Math.min(maxVars(), letters.length));
       setExpr(expr, letters);
       render();
+      // Echo back what was understood: someone who typed \cup sees the
+      // real glyph, and a typo shows up as the wrong shape immediately.
+      inp.value = toText(expr, notn(), S.letters);
     } catch (e) {
       err.textContent = e instanceof PErr
         ? `${e.message}${e.at != null ? ` at position ${e.at + 1}` : ''}`

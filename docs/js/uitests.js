@@ -286,6 +286,34 @@ setTimeout(() => {
     eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
+  /* -- the operator pad and LaTeX entry (SPEC.md 5.4) -- */
+  {
+    const inp = document.getElementById('src');
+    const pad = () => [...document.querySelectorAll('#opPad button')];
+
+    B.load('A u B', 'sets');
+    eqv('the pad offers intersection in sets', pad()[0].textContent, '∩');
+    eqv('and postfix complement', pad()[2].textContent, 'xᶜ');
+    B.load('A u B', 'logic');
+    eqv('the pad follows the notation', pad()[0].textContent, '∧');
+    eqv('and prefix negation', pad()[2].textContent, '¬');
+
+    inp.value = 'A';
+    inp.setSelectionRange(1, 1);
+    pad()[1].click();
+    eqv('a pad key inserts at the caret', inp.value, 'A ∨ ');
+
+    inp.value = 'A';
+    inp.setSelectionRange(0, 0);
+    pad()[1].click();
+    eqv('at the caret, not the end', inp.value, ' ∨ A');
+
+    inp.value = 'A \\cup B \\cap \\overline{C}';
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    eqv('LaTeX parses', toText(B.S.lines[0].expr, 'logic'), 'A ∨ (B ∧ ¬C)');
+    eqv('and echoes back as glyphs', inp.value, 'A ∨ (B ∧ ¬C)');
+  }
+
   document.getElementById('out').textContent =
     `RESULT pass=${pass} fail=${fail}\n\n` + log.join('\n');
   document.title = `pass=${pass} fail=${fail}`;

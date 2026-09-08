@@ -62,6 +62,16 @@ const P = [
   ['A v B', 'A ∨ B'],
   ['A n B', 'A ∧ B'],
   ['p | q | r', 'A ∨ B ∨ C'],
+  ['A \\cap B', 'A ∧ B'],
+  ['A \\cup B', 'A ∨ B'],
+  ['\\neg A', '¬A'],
+  ['\\overline{A \\cup B}', '¬(A ∨ B)'],
+  ['\\bar{A}', '¬A'],
+  ['A \\setminus B', 'A − B'],
+  ['A \\oplus B', 'A ⊕ B'],
+  ['\\emptyset \\cup A', 'F ∨ A'],
+  ['\\top \\cap A', 'T ∧ A'],
+  ['A \\ B', 'A − B'],
 ];
 for (const [src, want] of P) {
   let got;
@@ -75,6 +85,10 @@ eqv('letters follow input', parse('p | q').letters.join(''), 'pq');
 let perr = false;
 try { parse('A & '); } catch (e) { perr = true; }
 ok('parse error reported', perr);
+
+let cerr = false;
+try { parse('A \\frobnicate B'); } catch (e) { cerr = true; }
+ok('unknown latex command reported', cerr);
 
 /* ---- 5. round-trip ------------------------------------------------ */
 function rnd(depth, r) {

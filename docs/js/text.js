@@ -31,6 +31,20 @@ const SINGLE = {
   u: 'OR', v: 'OR', n: 'AND', U: 'T', T: 'T', t: 'T', F: 'F', f: 'F',
 };
 
+/* LaTeX spellings, so a student can paste from a problem set or type
+   what they would write in a document. \overline and \bar are NOT
+   because the {...} that follows them tokenises as a bracketed group. */
+const LATEX = {
+  cap: 'AND', land: 'AND', wedge: 'AND', cdot: 'AND',
+  cup: 'OR', lor: 'OR', vee: 'OR',
+  neg: 'NOT', lnot: 'NOT', sim: 'NOT', complement: 'NOT',
+  overline: 'NOT', bar: 'NOT',
+  setminus: 'DIFF', smallsetminus: 'DIFF', backslash: 'DIFF',
+  oplus: 'SYM', triangle: 'SYM', bigtriangleup: 'SYM',
+  emptyset: 'F', varnothing: 'F', bot: 'F',
+  top: 'T',
+};
+
 function tokenise(src) {
   const out = [];
   let i = 0;
@@ -41,10 +55,17 @@ function tokenise(src) {
     if ('∧∩&*·'.includes(c)) { push('AND'); i++; continue; }
     if ('∨∪|+'.includes(c)) { push('OR'); i++; continue; }
     if ('¬!~'.includes(c)) { push('NOT'); i++; continue; }
-    if ('−-\\'.includes(c)) { push('DIFF'); i++; continue; }
+    if ('−-'.includes(c)) { push('DIFF'); i++; continue; }
+    if (c === '\\') {
+      const m = /^\\([A-Za-z]+)/.exec(src.slice(i));
+      if (!m) { push('DIFF'); i++; continue; }
+      const t = LATEX[m[1].toLowerCase()];
+      if (!t) throw new PErr(`unknown command "\\${m[1]}"`, i);
+      push(t); i += m[0].length; continue;
+    }
     if ('Δ∆⊕'.includes(c)) { push('SYM'); i++; continue; }
-    if (c === '(') { push('LP'); i++; continue; }
-    if (c === ')') { push('RP'); i++; continue; }
+    if (c === '(' || c === '{') { push('LP'); i++; continue; }
+    if (c === ')' || c === '}') { push('RP'); i++; continue; }
     if (c === '=') { push('EQ'); i++; continue; }
     if (c === '∅') { push('F'); i++; continue; }
     if (c === "'" || c === 'ᶜ') { push('POST'); i++; continue; }

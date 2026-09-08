@@ -28,10 +28,13 @@
   <section class="expression" id="expression" aria-label="expression">
     <div class="lines" id="lines"></div>
     <div class="entry">
-      <label for="src">start from</label>
-      <input id="src" spellcheck="false" autocomplete="off"
-             placeholder="(A u B)^C">
-      <span class="err" id="srcErr"></span>
+      <div class="oppad" id="opPad"></div>
+      <div class="entryrow">
+        <label for="src">start from</label>
+        <input id="src" spellcheck="false" autocomplete="off"
+               placeholder="(A u B)^C   or   (A \cup B)\complement">
+        <span class="err" id="srcErr"></span>
+      </div>
     </div>
   </section>
 
