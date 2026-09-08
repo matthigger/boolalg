@@ -39,13 +39,13 @@ Expressions go in as symbols (`(A u B)^C`), words (`comp(sunny or
 warm)`) or LaTeX (`\overline{A \cup B}`), with a key of operator
 buttons for the glyphs no keyboard has. Variables can be named. Work
 comes out as PNG, CSV or LaTeX — the truth table, the derivation, and
-the circuit.
+the circuit; the pictures download, the text copies to the clipboard.
 
 The page follows your system's light or dark setting; the switch in
 the corner of the header overrides it and is remembered. Exports are
 light either way — work leaves the tool for a white page.
 
-Status: working prototype, 316 tests passing (118 core, 198
+Status: working prototype, 325 tests passing (118 core, 207
 interaction). Section 18 records every design decision with the evidence
 behind it — mostly the course's own problem sets and rubrics in
 `CS1800/problem_repo` — and lists what is still open.

@@ -206,7 +206,9 @@ main {
   color: var(--muted); margin: 11px 18px 4px; font-weight: 600;
   display: flex; align-items: center; gap: 10px;
 }
-/* Export sits with the thing it exports, at the end of its heading. */
+/* Export sits with the thing it exports, at the end of its heading.
+   The icon carries the difference between the two kinds: an arrow into
+   a tray saves a file, two sheets copy to the clipboard. */
 .exports { display: flex; gap: 4px; margin-left: auto; }
 .exports button.exp {
   font: inherit; font-size: 10.5px; letter-spacing: .08em;
@@ -214,7 +216,11 @@ main {
   padding: 2px 7px; border: 1px solid var(--line);
   border-radius: 999px; background: var(--panel); color: var(--muted);
   cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
 }
+.exports .ico { flex: none; width: 12px; height: 12px;
+  fill: none; stroke: currentColor; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; }
 .exports button.exp:hover { color: var(--accent);
   border-color: var(--accent); background: var(--accent-soft); }
 .toolrow .barright { margin-left: auto; display: flex; align-items: center;
