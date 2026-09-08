@@ -27,6 +27,7 @@
   --dim: #aab6c6;              /* disabled text */
   --ink-soft: #55677f;         /* diagram strokes */
   --err: #b91c1c;
+  --err-soft: #fbeaea;         /* undo hover */
   --scrim: #24303f66;
   --shadow: 0 18px 50px #24303f26;
   --card: 0 1px 3px #24303f1a, 0 8px 24px #24303f0d;
@@ -249,6 +250,15 @@ svg.circuit { display: block; width: 100%; height: auto;
   background: var(--panel); color: inherit;
 }
 .err { color: var(--err); font-size: 12px; }
+
+/* Only the last step carries one, so it needs no column of its own. */
+.dline .undo {
+  font: inherit; font-size: 15px; line-height: 1; margin-left: 6px;
+  padding: 2px 6px; border: 1px solid transparent; border-radius: 999px;
+  background: none; color: var(--muted); cursor: pointer;
+}
+.dline .undo:hover { background: var(--err-soft);
+                     border-color: var(--err); color: var(--err); }
 
 /* ---- algebra ---- */
 .rule-row { display: flex; align-items: center; gap: 6px; }

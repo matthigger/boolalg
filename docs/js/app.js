@@ -200,6 +200,19 @@ const stepVars = (i) => ({
   '--step-soft': `var(--step-${i}-soft)`,
 });
 
+/* Drop the last step. Only the last one is offered: removing a line
+   from the middle would leave every line below it claiming a rule that
+   no longer connects it to the line above. */
+function undoLast() {
+  if (S.lines.length < 2) return;
+  S.lines.pop();
+  S.selectedLine = Math.min(S.selectedLine, S.lines.length - 1);
+  S.sel = null;
+  S.hint = 0;
+  S.note = '';
+  render();
+}
+
 function renderLines() {
   const host = document.getElementById('lines');
   clear(host);
@@ -214,6 +227,12 @@ function renderLines() {
     if (step) {
       for (const [k, v] of Object.entries(step)) ruleTag.style.setProperty(k, v);
     }
+    const undo = i && i === S.lines.length - 1 && ln.rule
+      ? el('button', { class: 'undo', text: '\u00d7', type: 'button',
+          title: `undo ${label(ln.rule)}`,
+          onmousedown: (e) => e.stopPropagation(),
+          onclick: (e) => { e.stopPropagation(); undoLast(); } })
+      : null;
     const row = el('div', {
       class: 'dline' + (i === S.selectedLine ? ' active' : ''),
       onmousedown: () => { if (i !== S.selectedLine) {
@@ -222,6 +241,7 @@ function renderLines() {
       el('span', { class: 'eqs', text: i ? '=' : '' }),
       exprBox,
       ruleTag,
+      undo,
     ]);
     host.appendChild(row);
     boxes.push(exprBox);
@@ -881,6 +901,6 @@ function boot() {
    confused instructor can poke at it from the console. */
 window.BAE = { S, render, load, unify, applyRule, available, plan,
                doHint, applyNext, runAll, toggleRegion, minimalFor,
-               setExpr, reseed };
+               setExpr, reseed, undoLast };
 
 boot();

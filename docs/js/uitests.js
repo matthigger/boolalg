@@ -286,6 +286,31 @@ setTimeout(() => {
     eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
+  /* -- undoing the last step -- */
+  {
+    B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+    const undos = () => [...document.querySelectorAll('#lines .undo')];
+    eqv('a lone starting line offers no undo', undos().length, 0);
+
+    B.applyNext();
+    B.applyNext();
+    ok('two steps ran', S.lines.length === 3, `${S.lines.length} lines`);
+    eqv('and only the last carries an undo', undos().length, 1);
+    const lastRow = document.querySelectorAll('#lines .dline')[2];
+    ok('which sits on the last line', lastRow.contains(undos()[0]));
+
+    const before = toText(S.lines[1].expr, 'logic');
+    undos()[0].click();
+    eqv('clicking it drops that step', S.lines.length, 2);
+    eqv('leaving the line above untouched',
+        toText(S.lines.at(-1).expr, 'logic'), before);
+    eqv('and the undo moves up with it', undos().length, 1);
+
+    undos()[0].click();
+    eqv('undoing back to the start', S.lines.length, 1);
+    eqv('leaves nothing to undo', undos().length, 0);
+  }
+
   /* -- the operator pad and LaTeX entry (SPEC.md 5.4) -- */
   {
     const inp = document.getElementById('src');
