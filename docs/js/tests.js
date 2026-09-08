@@ -268,7 +268,7 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
 }
 
 /* ---- report ------------------------------------------------------- */
-/* ---- 12. exports (SPEC.md section 13) ------------------------------ */
+/* ---- 12. exports (SPEC.md section 16) ------------------------------ */
 {
   // The span map only means anything if it describes the same string
   // toText produces, so check that on the round-trip corpus.

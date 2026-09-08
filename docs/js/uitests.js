@@ -449,7 +449,7 @@ setTimeout(async () => {
     eqv('and echoes back as glyphs', inp.value, 'A ∨ (B ∧ ¬C)');
   }
 
-  /* -- exports (SPEC.md 13) -- */
+  /* -- exports (SPEC.md 16) -- */
   {
     const bar = (sel) => [...document.querySelectorAll(sel + ' button.exp')]
       .map((b) => b.textContent);

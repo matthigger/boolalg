@@ -1,6 +1,6 @@
 /* Taking work out of the tool: the truth table as a png, csv or LaTeX
    tabular, the derivation as a LaTeX align*, the circuit as a png
-   (SPEC.md section 13).
+   (SPEC.md section 16).
 
    The string builders are pure so the tests can check them without
    touching the filesystem; only save() reaches for the DOM. */

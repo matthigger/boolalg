@@ -309,7 +309,7 @@ function wireSelection(host, expr) {
   host.addEventListener('mouseleave', () => markSel(host, expr, null, 'hov'));
 }
 
-/* ---- exports (SPEC.md section 13) --------------------------------- */
+/* ---- exports (SPEC.md section 16) --------------------------------- */
 
 /* What renderLines paints, as data: for each line, the parts a step
    marked and the colour it used. The exporters draw their own text, so

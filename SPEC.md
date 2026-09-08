@@ -87,7 +87,7 @@ pane beneath it, and the algebra pane as a right rail. No whole-page
 scrolling on a laptop; panes scroll internally.
 
     ┌──────────────────────────────────────────────────────────────┐
-    │  Boolean Algebra Explorer      [ SETS | LOGIC ]   vars: 2 3 4│
+    │  Boolean Algebra Explorer  [ SETS | LOGIC | CIRCUIT ]         │
     ├─────────────────────┬──────────────────┬─────────────────────┤
     │  TRUTH TABLE        │  CIRCUIT         │  ALGEBRA            │
     │  A B C │ ¬C │ out   │                  │  Associative     ⓘ  │
@@ -97,12 +97,12 @@ scrolling on a laptop; panes scroll internally.
     │  ...                │                  │  Absorption   [x2]ⓘ │
     │                     │                  │  Complement   [x2]ⓘ │
     ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
-    │  EXPRESSION                            │  Identity     [x2]ⓘ │
+    │ [examples▾]   STEP MARKS[on|off] PNG TEX│  Identity     [x2]ⓘ │
     │                                        │  Domination   [x2]ⓘ │
     │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
-    │  = ¬(A ∧ B) ∧ C          DeMorgan's    │                     │
+    │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │
     │  = ...                                 │  [ Simplify ]       │
-    │                                        │  [ hint ▾ ]         │
+    │  ∧ ∨ ¬ − ⊕ ( ) T F                     │  [ hint ▾ ]         │
     │  start from: [ (A ^ B) v ~C          ] │  [ Reset ] [ Share ] │
     └────────────────────────────────────────┴─────────────────────┘
 
@@ -112,9 +112,20 @@ mode therefore never reflows the page — only the band's contents and the
 glyphs change, which is what makes the toggle read as a change of costume
 rather than a change of tool (§2).
 
-The `[ SETS | LOGIC ]` toggle is the only mode control and sits top
-centre. Variable count is a small segmented control beside it; `4` is
-available in logic mode only (§12).
+The `[ SETS | LOGIC | CIRCUIT ]` toggle is the only view control and
+sits beside the title, where it names what the viewer band is currently
+showing. There is no variable-count control: the expression says how
+many variables it has (§12).
+
+The expression pane carries its own strip: the examples menu (§3.1) at
+the left, and at the right a step-marks toggle and the export controls
+(§16). Step marks are deliberately a segment in the view toggle's idiom
+rather than a third pill beside PNG and TEX — they change how the
+derivation is drawn, they do not produce a file.
+
+Each operator glyph has a key below the derivation. None of them are on
+a keyboard, and the LaTeX spellings that are (§5.4) are only known to
+students who already write LaTeX.
 
 `ⓘ` opens the law's own demonstration (§6.3). It is a separate hit
 target from the rule row itself, so a demo can never be triggered by a
@@ -130,9 +141,23 @@ The prompt is to click. A student's first action is therefore shading a
 region and watching an expression appear, which teaches the mask idea
 (§2) before any algebra shows up.
 
-Alongside the empty state sits an **examples menu** — a short list of
-deep links (§16.3) chosen so that clicking through them exercises every
-mode of the system:
+Alongside the empty state sits an **examples menu**, at the top of the
+expression pane. It is sorted into three bands — mild, medium, spicy —
+where difficulty is the number of steps between an expression and its
+minimum. That number is what the minimiser already computes (§7), so
+the filing is measured rather than asserted, and a test enforces it;
+three entries filed as spicy by eye turned out to be one, two and three
+steps. A mild example may need no steps at all: DeMorgan on a Venn is
+already as short as it goes, and is worth loading for what the diagram
+does while the rule is applied.
+
+Each band also has a **make one up** button. It generates candidates and
+keeps the first whose derivation lands in the band asked for, which is
+what stops a long expression that collapses in one step from being
+served as spicy.
+
+The catalogue is chosen so that clicking through it exercises every mode
+of the system:
 
 | example | mode | what it demonstrates |
 |---|---|---|
@@ -372,8 +397,10 @@ Simplify (§7). Students do not type derivation steps: every line the
 tool shows is a correct application of a named law, so the derivation on
 screen is always self-consistent and always safe to imitate.
 
-Lines are never edited in place. The last line has a delete affordance;
-full history is undo/redo via `Ctrl-Z` / `Ctrl-Shift-Z`.
+Lines are never edited in place. The last line carries a `×` that drops
+that step. Only the last one does: removing a line from the middle would
+leave every line below it labelled with a rule that no longer connects
+it to the line above.
 
 A consequence worth being explicit about: the tool does not check
 student work and has no notion of a wrong step. It demonstrates, and
@@ -392,8 +419,31 @@ materials: `&`, `*`, `and`, `∧`, `∩` all parse to `and`; `|`, `+`,
 `or`, `∨`, `∪` to `or`; `!`, `~`, `¬`, `'`, `^C`, `^c`, `^{cc}`, and a
 trailing `c` to `not`; `1`/`T`/`True`/`U` and `0`/`F`/`False`/`∅` to
 constants; `-` and `\` to difference and `Δ`/`^` to symmetric
-difference (§8.3). Variable letters `A..D`, `P..S`, `p..s` are all
-accepted and normalised per §10.
+difference (§8.3).
+
+Three further ways of saying the same things, because a student who
+cannot type a glyph cannot start:
+
+- **words** — `and`, `or`, `not`, `union`, `intersection` (or `int`),
+  `complement` (or `comp`), `minus`, `without`, `xor`;
+- **LaTeX** — `\cap`, `\cup`, `\neg`, `\land`, `\lor`, `\setminus`,
+  `\oplus`, `\emptyset`, `\top`, `\bot`, and `\overline{...}` /
+  `\bar{...}`, with `{ }` grouping so a bar covers what it is written
+  over. A bare `\` is still difference: the command table is consulted
+  only when letters follow.
+- **the operator keys** below the input, which insert at the caret.
+
+On Enter the input echoes back what was understood, in the tool's own
+glyphs. That is the confirmation step: `\cup` becoming `∪` says the
+expression was read as intended, and a typo shows up as the wrong shape
+rather than as a silent reinterpretation.
+
+Variables are **any name**: `A`, `p`, `sunny`, `x1`. A name is a letter
+followed by letters, digits or underscores, and anything that is not a
+reserved word above is one. The letters `A..D`, `P..S`, `p..s` are still
+normalised per §10; other names are used as written and label the Venn
+circles and table columns directly. Reserved words are the cost of this
+— naming a set `int` is not possible.
 
 Parse errors show a caret under the offending character with a one-line
 message. A successful parse **replaces** the derivation with a single
@@ -474,10 +524,29 @@ identity, in generic variables, rendered in the current mode.
 
     [ try it on my expression ]        [ dismiss ]
 
-In logic mode the two Venns become two truth-table output columns, which
-are visibly identical row for row. Either way the demonstration *is* the
-mask equality (§2) — the same machinery, shown directly instead of
-applied.
+In logic mode the two Venns become two truth tables, which are visibly
+identical row for row and which must sit **side by side**: a comparison
+stacked vertically stops reading as one. Those tables are therefore
+sized to their content rather than reserving the constant working block
+that keeps a stepping derivation from drifting (§9.1) — nothing here
+steps, so nothing needs holding still.
+
+Either way the demonstration *is* the mask equality (§2) — the same
+machinery, shown directly instead of applied. The card does not also
+claim in words that the two sides agree: two diagrams either side of an
+equals sign are the demonstration, and a sentence asserting it is one
+the reader has to take on trust instead of checking.
+
+What the card does carry in words is **why the law is true**, written
+once per notation. "Every point is inside A or outside it" and "A is
+either true or false" are the same fact, but only one of them reads as
+an explanation to a student looking at a truth table.
+
+Both sides are clickable, in the same gesture as the derivation (§5.2):
+clicking any part re-points that side at the part, adding its column to
+the table or shading its region on the Venn. The law is a claim about
+whole expressions, and being able to ask what each piece contributes is
+how a reader checks it rather than believing it.
 
 **The demo cannot cost a student their work.** It is strictly
 non-destructive:
@@ -915,15 +984,24 @@ run.
 
 ## 12. Variable count
 
-`n = 2` and `n = 3` are supported in both modes and are the default
-(`n = 3`). `n = 4` is supported in **logic mode only**: a 16-row truth
-table and a deeper circuit cost nothing, but a faithful 4-set Venn needs
-four ellipses, which is hard to read and fiddly to click.
+`n` is not a control. The expression says how many variables it has, and
+`n` follows it; the empty state opens at `n = 3`. A picker would only
+let a reader put the tool into a state its own expression contradicts.
 
-**The four-ellipse Venn is not built, at any phase.** Switching to sets
-mode while `n = 4` prompts to drop to `n = 3`, and the `4` control is
-disabled in sets mode. Changing `n` discards the derivation and re-seeds
-from the truncated/extended mask, with the same notice as §8.2.
+`n = 4` is **logic and circuit only**: a 16-row truth table and a deeper
+circuit cost nothing, but a faithful 4-set Venn needs four ellipses,
+which is hard to read and fiddly to click. **The four-ellipse Venn is
+not built, at any phase.** Loading a four-variable expression while in
+sets mode moves the view to logic and says why — the alternative is
+dropping a variable behind the reader's back. Narrowing the other way,
+where an expression no longer needs a variable the derivation used,
+re-seeds from the truncated mask with the same notice as §8.2.
+
+`n = 4` is also a hard ceiling, not a chosen one. A row mask is a
+bitfield of `2^n` bits held in a JavaScript number and manipulated with
+bitwise operators, which are 32-bit; `n = 5` needs 32 bits and overflows
+the shift that builds it. Asking for a fifth variable is refused by
+name at parse time.
 
 One consequence: minimality is provable only for `n ≤ 3` (§7), and sets
 mode never exceeds `n = 3`, so every claim the tool makes about a
@@ -1063,6 +1141,21 @@ additive — a student never needs to see it — and lives behind an
 
 ### 16.1 Figure export
 
+**Built:** the truth table exports as PNG, CSV or a LaTeX `tabular`; the
+derivation as PNG or an `align*` (§16.2); the circuit as PNG. Each
+control sits in the heading of the thing it exports, and every file is
+named after the expression. Rasters are drawn on a canvas rather than
+lifted from the DOM — going through a `foreignObject` would mean
+carrying the whole stylesheet along to arrive at the same grid of short
+strings — except the circuit, which is already SVG and is serialised
+with its computed styles inlined.
+
+The step marks (§5.3) are drawn in the exports exactly when they are
+shown on screen, the toggle driving both.
+
+**Not built:** SVG output, the blank/filled and plain/traced variants
+below, Venn export, and the `problem_repo` file-naming convention.
+
 Export the current viewer as **SVG** (vector, for LaTeX via
 `\includegraphics`) and **PNG** at 2x (for slides and Sphinx).
 
@@ -1081,6 +1174,17 @@ Export must be chrome-free: no selection outlines, hover states, or
 tooltips in the output.
 
 ### 16.2 LaTeX emission
+
+**Built:** the derivation as a bare `align*`, one line per step, each
+tagged with `\text{<law>}`. Where step marks are on, the changed
+subtree is wrapped in a `\bastep{<colour>}{...}` macro emitted with the
+colours it names and defined by `\providecommand`, so a reader can box
+it, recolour it, or define it away without touching the body of the
+derivation. Truth tables emit as `tabular` with the variables ruled off
+from the working. Verified by compiling the output.
+
+**Not built:** the `\stud{}` / `\sol{}` house-style wrapper, problem
+text, and the `\venn` table layout below.
 
 Emit a `.tex` fragment in `problem_repo` house style — problem text,
 `\stud{\vfill}`, then `\sol{}` wrapping the derivation as an `align*`:
