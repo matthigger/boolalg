@@ -164,9 +164,14 @@ where difficulty is the number of steps between an expression and its
 minimum. That number is what the minimiser already computes (§7), so
 the filing is measured rather than asserted, and a test enforces it;
 three entries filed as spicy by eye turned out to be one, two and three
-steps. A mild example may need no steps at all: DeMorgan on a Venn is
-already as short as it goes, and is worth loading for what the diagram
-does while the rule is applied.
+steps.
+
+Every entry has at least one step to take, mild included: an example
+that opens with nothing to do reads as a dead end, whatever it
+illustrates. The flagship demonstrations survive that rule by starting
+from the other side — DeMorgan on a Venn runs from `Aᶜ ∩ Bᶜ` rather than
+`(A ∪ B)ᶜ`, so the shading still holds still while a step is actually
+taken.
 
 Each band also has a **make one up** button. It generates candidates and
 keeps the first whose derivation lands in the band asked for, which is

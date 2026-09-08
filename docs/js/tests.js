@@ -392,8 +392,9 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
 {
   // The band an example is filed under is a claim about how much work
   // it takes; check the claim rather than trusting the filing.
-  // A mild example may be minimal already; the harder bands may not be.
-  const BOUND = { mild: [0, 2], medium: [3, 5], spicy: [6, 40] };
+  // Every example has work to do, mild included: one that opens with
+  // nothing left reads as a dead end whatever it illustrates.
+  const BOUND = { mild: [1, 2], medium: [3, 5], spicy: [6, 40] };
   const misfiled = [];
   let parsed = 0;
   for (const level of LEVELS) {

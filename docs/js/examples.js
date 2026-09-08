@@ -29,14 +29,17 @@ const BAND = {
   spicy: { nv: 3, depth: 4, min: 6, max: 40, tries: 220 },
 };
 /* Filed by measured difficulty: the steps between the expression and
-   its minimum. A mild example may take none at all -- DeMorgan on a
-   Venn is already as short as it goes, and is worth loading anyway for
-   what the diagram does while the rule is applied. */
+   its minimum. Every entry has at least one step to take, mild
+   included: an example that opens with nothing to do reads as a dead
+   end, whatever it illustrates. The flagship demonstrations survive
+   that rule by starting from the other side -- DeMorgan on a Venn runs
+   from the intersection of the complements, so the shading still holds
+   still while a step is actually taken. */
 export const CATALOGUE = {
   mild: [
-    ['(A u B)^C', 'sets', 'DeMorgan on a Venn — watch the shading hold still'],
-    ['~(A & B)', 'logic', "DeMorgan's, in a single rewrite"],
-    ['(A u B) - C', 'sets', 'difference, and the Definition that unlocks it'],
+    ['A^C n B^C', 'sets', 'DeMorgan on a Venn — watch the shading hold still'],
+    ['~(~A | ~B)', 'logic', "DeMorgan's, then the double negations"],
+    ['(A - B)^C', 'sets', 'difference, and the Definition that unlocks it'],
     ['A n (A u B)', 'sets', 'Absorption: the bracket never gets to matter'],
     ['A u A^C', 'sets', 'Complement: the two halves are everything'],
     ['~((A & B) | ~C)', 'logic', 'circuit01 — table, circuit, wire tracing'],
