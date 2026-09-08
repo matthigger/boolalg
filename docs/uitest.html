@@ -5,12 +5,12 @@
 <header><h1>Boolean Algebra Explorer</h1>
   <div class="modes" id="modeToggle"><button data-mode="sets"></button>
   <button data-mode="logic"></button><button data-mode="circuit"></button></div>
-  <label class="vars"><span id="varPick" class="seg"></span></label>
-  <button id="examplesBtn"></button></header>
+</header>
 <main>
   <section class="viewer" id="viewer"></section>
   <section class="expression" id="expression">
-    <div class="exprbar"><span class="exports" id="exprExport"></span></div>
+    <div class="exprbar"><button id="examplesBtn"></button>
+      <span class="barright" id="exprExport"></span></div>
     <div class="lines" id="lines"></div>
     <div class="entry"><div class="oppad" id="opPad"></div>
       <div class="entryrow"><input id="src">
@@ -32,6 +32,14 @@ window.addEventListener('error', (e) => {
   document.getElementById('out').textContent =
     'RESULT pass=0 fail=1\nUNCAUGHT ' + e.message + '\n' +
     ((e.error && e.error.stack) || '');
+});
+// The suite is async, so a thrown error surfaces as a rejected promise
+// and never reaches the handler above -- the page just sits on
+// "running..." with no clue why.
+window.addEventListener('unhandledrejection', (e) => {
+  document.getElementById('out').textContent =
+    'RESULT pass=0 fail=1\nREJECTED ' + (e.reason && e.reason.message) +
+    '\n' + ((e.reason && e.reason.stack) || '');
 });
 </script>
 <script type="module" src="./js/app.js"></script>

@@ -229,13 +229,21 @@ setTimeout(async () => {
   B.load('(A u B)^C', 'sets');
   {
     const shown = () => document.querySelector('#lines .expr').textContent;
-    const four = () => [...document.querySelectorAll('#varPick button')]
-      .find((b) => b.textContent === '4');
     ok('sets reads in set symbols', /∪/.test(shown()), shown());
-    ok('four sets is refused', four().disabled);
     B.S.mode = 'circuit'; B.render();
     ok('circuit reads in logic symbols', /∨/.test(shown()), shown());
-    ok('four variables is allowed', !four().disabled);
+
+    // The variable count follows the expression now that there is no
+    // picker; a fourth variable is more than the Venn can draw, so it
+    // moves the view rather than dropping the variable.
+    B.load('A u B u C', 'sets');
+    eqv('three sets stay in sets', B.S.mode, 'sets');
+    eqv('and the count follows the expression', B.S.nv, 3);
+    B.load('A u B u C u D', 'sets');
+    eqv('a fourth variable leaves sets', B.S.mode, 'logic');
+    eqv('keeping all four', B.S.nv, 4);
+    B.load('A u B', 'sets');
+    eqv('and a smaller one narrows again', B.S.nv, 2);
   }
 
   /* -- leaving the table stops tracing. The circuit used to stay stuck
@@ -476,9 +484,13 @@ setTimeout(async () => {
     eqv('one row per line', dc.height, 18 * 2 + B.S.lines.length * 34);
 
     // Step marks: the toggle drives the pane and both exports together.
-    const toggle = () => document.querySelector('#exprExport button.toggle');
+    const seg = (v) => [...document.querySelectorAll('#markToggle button')]
+      .find((b) => b.textContent === v);
     ok('the marks are on to begin with', B.S.annotate);
-    ok('and the toggle shows it', toggle().classList.contains('on'));
+    eqv('and the segment shows it',
+        seg('on').getAttribute('aria-selected'), 'true');
+    eqv('with the other side unselected',
+        seg('off').getAttribute('aria-selected'), 'false');
     ok('the pane paints them',
        document.querySelectorAll('#lines .nd.after').length > 0);
     ok('the marks reach the exports', B.stepMarks().some((m) => m.length));
@@ -490,7 +502,7 @@ setTimeout(async () => {
     ok('and defines the colour it names', texOn.includes('\\definecolor{bastep1}'));
     ok('still an align*', texOn.includes('\\begin{align*}'));
 
-    toggle().click();
+    seg('off').click();
     ok('toggling off clears the state', !B.S.annotate);
     eqv('the pane stops painting them',
         document.querySelectorAll('#lines .nd.after').length, 0);
@@ -500,7 +512,7 @@ setTimeout(async () => {
                                     B.stepMarks());
     ok('unannotated tex needs no macro', !texOff.includes('\\bastep'));
     ok('but still names the laws', texOff.includes('\\text{'));
-    toggle().click();
+    seg('on').click();
     ok('and it toggles back on', B.S.annotate);
 
     const g = document.querySelector('#viewer svg.circuit');

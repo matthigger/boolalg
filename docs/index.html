@@ -15,10 +15,6 @@
     <button data-mode="logic" role="tab">LOGIC</button>
     <button data-mode="circuit" role="tab">CIRCUIT</button>
   </div>
-  <label class="vars">variables
-    <span id="varPick" class="seg"></span>
-  </label>
-  <button id="examplesBtn" class="ghost">examples ▾</button>
 </header>
 </div>
 
@@ -26,7 +22,10 @@
   <section class="viewer" id="viewer" aria-label="viewer"></section>
 
   <section class="expression" id="expression" aria-label="expression">
-    <div class="exprbar"><span class="exports" id="exprExport"></span></div>
+    <div class="exprbar">
+      <button id="examplesBtn" class="ghost">examples ▾</button>
+      <span class="barright" id="exprExport"></span>
+    </div>
     <div class="lines" id="lines"></div>
     <div class="entry">
       <div class="oppad" id="opPad"></div>

@@ -75,6 +75,19 @@ const P = [
   ['\\emptyset \\cup A', 'F ∨ A'],
   ['\\top \\cap A', 'T ∧ A'],
   ['A \\ B', 'A − B'],
+  ['A and B', 'A ∧ B'],
+  ['A or B', 'A ∨ B'],
+  ['not A', '¬A'],
+  ['A union B', 'A ∨ B'],
+  ['A intersection B', 'A ∧ B'],
+  ['A int B', 'A ∧ B'],
+  ['complement A', '¬A'],
+  ['comp (A or B)', '¬(A ∨ B)'],
+  ['A minus B', 'A − B'],
+  ['rain and wet', 'A ∧ B'],
+  ['sunny or rain', 'B ∨ A'],
+  ['not raining', '¬A'],
+  ['x1 & x2', 'A ∧ B'],
 ];
 for (const [src, want] of P) {
   let got;
@@ -92,6 +105,17 @@ ok('parse error reported', perr);
 let cerr = false;
 try { parse('A \\frobnicate B'); } catch (e) { cerr = true; }
 ok('unknown latex command reported', cerr);
+
+eqv('named variables keep their names',
+    parse('sunny and warm').letters.join(','), 'sunny,warm');
+eqv('and sort into a stable order',
+    parse('warm and sunny').letters.join(','), 'sunny,warm');
+eqv('a word operator is not a variable',
+    parse('rain and snow').letters.length, 2);
+
+let toomany = false;
+try { parse('a & b & c & d & e'); } catch (e) { toomany = true; }
+ok('more than four variables is refused', toomany);
 
 /* ---- 5. round-trip ------------------------------------------------ */
 function rnd(depth, r) {

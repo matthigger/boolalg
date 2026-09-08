@@ -378,12 +378,17 @@ function renderExprBar() {
   if (!cur()) return;
   // Nothing has been derived yet, so there are no steps to mark.
 
-  host.appendChild(el('button', {
-    class: 'toggle' + (S.annotate ? ' on' : ''), type: 'button',
-    text: 'step marks',
-    title: 'the coloured boxes showing what each step changed',
-    onclick: () => { S.annotate = !S.annotate; render(); },
-  }));
+  const seg = el('span', { class: 'seg', id: 'markToggle' },
+    [true, false].map((on) => el('button', {
+      text: on ? 'on' : 'off', type: 'button',
+      'aria-selected': String(S.annotate === on),
+      onclick: () => { S.annotate = on; render(); },
+    })));
+  host.appendChild(el('span', { class: 'marks' }, [
+    el('span', { class: 'mlbl', text: 'step marks',
+      title: 'the coloured boxes showing what each step changed' }),
+    seg,
+  ]));
   host.appendChild(exportBar([
     ['png', () => Ex.canvasPNG(
        Ex.derivationPNG(S.lines, notn(), S.letters, stepMarks()),
@@ -898,9 +903,20 @@ function showExamples() {
   ]));
 }
 
+/* The Venn draws at most three circles, so an expression needing four
+   variables can only be shown as a table. Move there and say so, rather
+   than dropping a variable behind the reader's back. */
+function fitMode(need) {
+  if (need > 3 && S.mode === 'sets') {
+    S.mode = 'logic';
+    toast('four variables — the Venn only draws three, so this is logic');
+  }
+}
+
 function load(src, mode) {
   const { expr, letters } = parse(src);
   if (mode) S.mode = mode;
+  fitMode(letters.length);
   S.nv = Math.max(2, Math.min(maxVars(), letters.length));
   setExpr(expr, letters);
   document.getElementById('src').value = toText(expr, notn(), S.letters);
@@ -957,17 +973,6 @@ function fromUrl() {
 function render() {
   for (const b of document.querySelectorAll('#modeToggle button')) {
     b.setAttribute('aria-selected', String(b.dataset.mode === S.mode));
-  }
-  const vp = document.getElementById('varPick');
-  clear(vp);
-  for (const n of [2, 3, 4]) {
-    vp.appendChild(el('button', {
-      text: String(n), 'aria-selected': String(n === S.nv),
-      disabled: n > maxVars(),
-      title: n > maxVars()
-        ? 'four sets would need four ellipses — logic and circuit only' : '',
-      onclick: () => { S.nv = n; if (cur()) reseed(); render(); },
-    }));
   }
   renderViewer();
   renderLines();
@@ -1112,7 +1117,8 @@ function boot() {
     try {
       const { expr, letters } = parse(v);
       err.textContent = '';
-      S.nv = Math.max(S.nv, Math.min(maxVars(), letters.length));
+      fitMode(letters.length);
+      S.nv = Math.max(2, Math.min(maxVars(), letters.length));
       setExpr(expr, letters);
       render();
       // Echo back what was understood: someone who typed \cup sees the

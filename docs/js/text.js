@@ -18,10 +18,14 @@ export const PRESETS = {
 
 /* ---- tokenising --------------------------------------------------- */
 
-/* Multi-letter words, matched case-insensitively. */
+/* Multi-letter words, matched case-insensitively. Reserved: any word
+   not in here is taken as a variable name, so adding one takes that
+   name away from students. */
 const WORD = {
   and: 'AND', or: 'OR', not: 'NOT', true: 'T', false: 'F',
-  union: 'OR', inter: 'AND', empty: 'F', xor: 'SYM',
+  union: 'OR', inter: 'AND', intersect: 'AND', intersection: 'AND',
+  int: 'AND', empty: 'F', xor: 'SYM', complement: 'NOT', comp: 'NOT',
+  minus: 'DIFF', without: 'DIFF', universe: 'T', nothing: 'F',
 };
 
 /* Single letters, matched case-sensitively so that lowercase u is
@@ -81,11 +85,14 @@ function tokenise(src) {
     }
     if (/[0-9]/.test(c)) { push(c === '0' ? 'F' : 'T'); i++; continue; }
     if (/[A-Za-z]/.test(c)) {
-      const m = /^[A-Za-z]+/.exec(src.slice(i))[0];
+      // A name may carry digits and underscores after its first letter,
+      // so rain_2 is one variable rather than a variable and a number.
+      const m = /^[A-Za-z][A-Za-z0-9_]*/.exec(src.slice(i))[0];
       if (m.length > 1) {
         const w = WORD[m.toLowerCase()];
-        if (!w) throw new PErr(`unknown word "${m}"`, i);
-        push(w); i += m.length; continue;
+        if (w) { push(w); i += m.length; continue; }
+        // Anything else is a name: sunny, wet, x1.
+        push('VAR', m); i += m.length; continue;
       }
       if (SINGLE[m]) { push(SINGLE[m]); i++; continue; }
       push('VAR', m); i++; continue;
@@ -95,6 +102,11 @@ function tokenise(src) {
   push('END');
   return out;
 }
+
+/* A row mask is a bitfield of 2^nv bits held in a JS number used with
+   bitwise operators, which are 32-bit. Five variables would need 32
+   bits and overflow the shift that builds it. */
+export const MAX_VARS = 4;
 
 export class PErr extends Error {
   constructor(msg, at) { super(msg); this.at = at; }
@@ -162,6 +174,10 @@ export function parse(src) {
 
   const letters = [...seen].sort();
   if (letters.length === 0) letters.push('A');
+  if (letters.length > MAX_VARS) {
+    throw new PErr(`${letters.length} variables (${letters.join(', ')}) — ` +
+      `at most ${MAX_VARS}`, null);
+  }
   const bind = (n) => {
     if (n.k === 'var') return vr(letters.indexOf(n.name));
     if (n.k === 'not') return nt(bind(n.a));

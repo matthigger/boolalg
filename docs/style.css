@@ -71,8 +71,9 @@ header {
   width: 100%; max-width: var(--app-max); margin-inline: auto;
 }
 h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: .2px; }
-header .modes { margin-left: auto; }
-header #examplesBtn { flex: none; }
+/* Beside the title, not pushed to the far corner: it names what the
+   main pane is currently showing. */
+header .modes { margin-left: 4px; }
 
 /* Pill toggles. */
 .modes, .seg {
@@ -92,8 +93,6 @@ header #examplesBtn { flex: none; }
 .modes button:disabled, .seg button:disabled {
   color: var(--dim); cursor: default;
 }
-.vars { font-size: 13px; color: var(--muted); display: flex;
-        align-items: center; gap: 8px; }
 
 /* ---- layout ---- */
 main {
@@ -133,17 +132,19 @@ main {
 }
 .exports button.exp:hover { color: var(--accent);
   border-color: var(--accent); background: var(--accent-soft); }
-.exprbar { display: flex; margin-bottom: 6px; min-height: 20px; }
-.exprbar .exports { gap: 6px; align-items: center; }
-button.toggle {
-  font: inherit; font-size: 10.5px; letter-spacing: .08em;
-  text-transform: uppercase; font-weight: 600;
-  padding: 2px 9px; border: 1px dashed var(--line);
-  border-radius: 999px; background: var(--panel); color: var(--muted);
-  cursor: pointer;
-}
-button.toggle.on { border-color: var(--ink-soft); color: var(--ink);
-                   border-style: dashed; background: var(--panel-2); }
+.exprbar { display: flex; align-items: center; margin-bottom: 8px;
+           min-height: 28px; gap: 10px; }
+.exprbar .barright { margin-left: auto; display: flex; align-items: center;
+                     gap: 12px; }
+.exprbar .exports { margin-left: 0; gap: 6px; align-items: center; }
+/* A two-state segment, in the view toggle's idiom: the step marks are a
+   way of looking at the derivation, not a third thing to download. */
+.marks { display: flex; align-items: center; gap: 6px; }
+.marks .mlbl { font-size: 10.5px; letter-spacing: .08em;
+               text-transform: uppercase; font-weight: 600;
+               color: var(--muted); }
+.marks .seg { padding: 2px; }
+.marks .seg button { padding: 3px 10px; font-size: 11px; }
 .panebody { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px;
              display: flex; align-items: center; justify-content: center;
              /* Reserve the scrollbar gutter always. Header wrapping
