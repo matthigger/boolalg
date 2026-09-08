@@ -203,6 +203,11 @@ table.tt.compact th { white-space: nowrap; }
 table.tt th.var { font-size: 16px; }
 table.tt th.sub { color: var(--muted); font-weight: 500; }
 table.tt th.selcol { background: var(--sel-soft); color: var(--sel); }
+/* The whole column, not just its header: the point of picking one is to
+   read down it. */
+table.tt td.selcol { background: var(--sel-soft); color: var(--sel);
+                     font-weight: 650; }
+table.tt td.selcol.one { background: var(--sel); color: var(--on-accent); }
 table.tt td.out { cursor: pointer; font-weight: 650; }
 table.tt td.one { background: var(--accent-soft); }
 table.tt tr.hov td { background: var(--trace); }
@@ -349,11 +354,21 @@ button.ghost:disabled { color: var(--dim); }
 .lawgrid .side .dia { display: flex; justify-content: center; }
 .lawgrid .side .sidecap {
   font-size: 11.5px; color: var(--muted); margin-top: 8px;
-  min-height: 2.4em;
+  min-height: 1.3em;
 }
 .lawgrid .mid { font-size: 20px; color: var(--muted); align-self: center; }
 .lawwhy { color: var(--ink); font-size: 13.5px; line-height: 1.55;
           margin: 6px 0 16px; }
+.lawgloss { color: var(--muted); font-size: 12.5px; line-height: 1.5;
+            margin: -8px 0 16px; padding-left: 10px;
+            border-left: 2px solid var(--line); }
+/* A law that is easy to over-apply says so under the demonstration,
+   where the reader has just seen the shape it does hold for. */
+.lawwarn { color: var(--err); font-size: 12.5px; line-height: 1.5;
+           margin: 14px 0 0; }
+.lawgrid + .lawgrid { margin-top: 14px; padding-top: 14px;
+                      border-top: 1px dashed var(--line); }
+.lawgrid.one { justify-content: center; }
 /* The demonstration is clickable in the same way the derivation is, so
    it highlights the same way too. */
 .lawgrid .side .t .nd:hover { background: var(--accent-soft);

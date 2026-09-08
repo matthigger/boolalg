@@ -66,20 +66,20 @@ function minimalFor(m) {
 
 const txt = (s) => document.createTextNode(s);
 
-function nodeDom(n, path, parentKind) {
+function nodeDom(n, path, parentKind, letters = S.letters) {
   const g = GLYPH[notn()];
   const sp = el('span', { class: 'nd', data: { path: JSON.stringify(path) } });
   const paren = needsParens(n, parentKind);
   if (paren) sp.appendChild(txt('('));
   switch (n.k) {
-    case 'var': sp.appendChild(txt(S.letters[n.i] ?? '?')); break;
+    case 'var': sp.appendChild(txt(letters[n.i] ?? '?')); break;
     case 'const': sp.appendChild(txt(n.v ? g.T : g.F)); break;
     case 'not': {
       const inner = n.a;
       const simple = ['var', 'const', 'not'].includes(inner.k);
       const body = () => {
         if (!simple) sp.appendChild(txt('('));
-        sp.appendChild(nodeDom(inner, [...path, 'a'], null));
+        sp.appendChild(nodeDom(inner, [...path, 'a'], null, letters));
         if (!simple) sp.appendChild(txt(')'));
       };
       if (g.notPre) { sp.appendChild(txt(g.notPre)); body(); }
@@ -87,15 +87,15 @@ function nodeDom(n, path, parentKind) {
       break;
     }
     case 'diff': case 'sym': {
-      sp.appendChild(nodeDom(n.l, [...path, 'l'], n.k));
+      sp.appendChild(nodeDom(n.l, [...path, 'l'], n.k, letters));
       sp.appendChild(txt(` ${n.k === 'diff' ? g.diff : g.sym} `));
-      sp.appendChild(nodeDom(n.r, [...path, 'r'], n.k));
+      sp.appendChild(nodeDom(n.r, [...path, 'r'], n.k, letters));
       break;
     }
     default:
       n.ts.forEach((t, i) => {
         if (i) sp.appendChild(txt(` ${g[n.k]} `));
-        sp.appendChild(nodeDom(t, [...path, i], n.k));
+        sp.appendChild(nodeDom(t, [...path, i], n.k, letters));
       });
   }
   if (paren) sp.appendChild(txt(')'));
@@ -671,27 +671,41 @@ function runAll() {
 
 /* ---- law demonstration (SPEC.md section 6.3) ---------------------- */
 
-/* Each law carries a worked pair and a sentence of intuition, written
-   once per notation: "every point is inside A or outside it" and "A is
-   either true or false" are the same fact, but only one of them reads
-   as an explanation to a student in front of a truth table.
+/* Each law carries its worked forms and a sentence of intuition,
+   written once per notation: "every point is inside A or outside it"
+   and "A is either true or false" are the same fact, but only one of
+   them reads as an explanation to a student in front of a truth table.
 
-   The pair is shown, not argued. That both sides agree is what the two
+   layout 'pair' sets the two sides against an equals sign. layout
+   'single' shows one table carrying the whole statement in its columns,
+   for the laws whose point is that a column comes out constant or
+   matches one already there; in sets, where a diagram has no columns to
+   compare, it falls back to the pair.
+
+   The pair is shown, not argued. That both sides agree is what the
    diagrams below them demonstrate, so no sentence says so. */
 const LAWS = {
   Associative: {
-    demo: ['(A u B) u C', 'A u (B u C)'],
-    sets: 'Where the brackets fall makes no difference, so this tool '
-        + 'writes a run of the same operator without them at all. '
-        + 'A ∪ B ∪ C needing no brackets is this law — which is why '
-        + 'there is nothing here to apply.',
-    logic: 'Where the brackets fall makes no difference, so this tool '
-         + 'writes a run of the same operator without them at all. '
-         + 'A ∨ B ∨ C needing no brackets is this law — which is why '
-         + 'there is nothing here to apply.',
+    layout: 'solo',
+    demos: [['A u B u C', 'A u B u C'], ['A n B n C', 'A n B n C']],
+    sets: '(A ∪ B) ∪ C = A ∪ (B ∪ C): it does not matter which union '
+        + 'you do first. Because the answer never depends on the '
+        + 'bracketing, we drop the brackets and write A ∪ B ∪ C. The '
+        + 'same holds for A ∩ B ∩ C.',
+    logic: '(A ∨ B) ∨ C = A ∨ (B ∨ C): it does not matter which one you '
+         + 'do first. Because the answer never depends on the '
+         + 'bracketing, we drop the brackets and write A ∨ B ∨ C. The '
+         + 'same holds for A ∧ B ∧ C.',
+    warn: {
+      sets: 'Both operations have to be the same one. '
+          + '(A ∩ B) ∪ C is not A ∩ (B ∪ C).',
+      logic: 'Both operations have to be the same one. '
+           + '(A ∧ B) ∨ C is not A ∧ (B ∨ C).',
+    },
   },
   Commutative: {
-    demo: ['A u B', 'B u A'],
+    layout: 'pair',
+    demos: [['A u B', 'B u A']],
     sets: 'Order carries no information: A ∪ B and B ∪ A shade the same '
         + 'region, and so do A ∩ B and B ∩ A. Either side may be '
         + 'written first, whenever that makes the next step easier to '
@@ -700,34 +714,37 @@ const LAWS = {
          + 'in exactly the same rows, and so do A ∧ B and B ∧ A.',
   },
   'Double Negation': {
-    demo: ['(A^C)^C', 'A'],
-    sets: 'Everything outside "everything outside A" is A again. Two '
-        + 'complements undo each other, so a doubled complement can '
-        + 'always be struck out.',
-    logic: 'Denying a denial affirms it. ¬¬A says neither more nor less '
-         + 'than A, so the pair can always be struck out.',
+    layout: 'single',
+    demos: [['(A^C)^C', 'A']],
+    sets: 'Two complements cancel. Everything outside everything-'
+        + 'outside-A is A again.',
+    logic: 'Two negations cancel. ¬¬A says exactly what A says.',
   },
   "DeMorgan's": {
-    demo: ['(A u B)^C', 'A^C n B^C'],
-    sets: 'A complement flips the operator and moves inward. To be '
-        + 'outside A ∪ B you must miss A and miss B — so the outside of '
-        + 'a union is the overlap of the outsides. This is the law that '
-        + 'gets a complement off a bracket.',
-    logic: 'A negation flips the operator and moves inward. For A ∨ B to '
-         + 'fail, both sides have to fail — so ¬(A ∨ B) is ¬A ∧ ¬B. This '
-         + 'is the law that gets a negation off a bracket.',
+    layout: 'pair',
+    demos: [['(A u B)^C', 'A^C n B^C']],
+    sets: "DeMorgan's Law distributes a complement over another "
+        + 'operation. The complement sits outside the brackets in the '
+        + 'first expression, and lands on each set in the second. The '
+        + 'operation flips as it goes, so ∪ becomes ∩.',
+    logic: "DeMorgan's Law distributes a negation over another "
+         + 'operation. The negation sits outside the brackets in the '
+         + 'first expression, and lands on each boolean in the second. '
+         + 'The operation flips as it goes, so ∨ becomes ∧.',
   },
   Distributive: {
-    demo: ['A n (B u C)', '(A n B) u (A n C)'],
+    layout: 'pair',
+    demos: [['A n (B u C)', '(A n B) u (A n C)']],
     sets: 'A condition shared across a choice can be handed to each '
         + 'branch separately: the part of A lying in B or C is the part '
         + 'in B together with the part in C.',
     logic: 'A condition shared across a choice can be handed to each '
-         + 'branch, the way multiplying out a bracket does — A ∧ (B ∨ C) '
-         + 'becomes (A ∧ B) ∨ (A ∧ C).',
+         + 'branch, the way multiplying out a bracket does: '
+         + 'A ∧ (B ∨ C) becomes (A ∧ B) ∨ (A ∧ C).',
   },
   Absorption: {
-    demo: ['A n (A u B)', 'A'],
+    layout: 'pair',
+    demos: [['A n (A u B)', 'A']],
     sets: 'The larger set already contains the smaller one, so cutting '
         + 'down to it changes nothing: once you are inside A, being '
         + 'inside A ∪ B is automatic. B never gets to matter.',
@@ -736,72 +753,94 @@ const LAWS = {
          + 'requiring A. B never gets to matter.',
   },
   Complement: {
-    demo: ['A u A^C', '1'],
-    sets: 'Every point is either inside A or outside it — never both, '
-        + 'never neither. So the two halves together are everything, '
-        + 'and their overlap is empty.',
-    logic: 'A is either true or false — never both, never neither. So '
-         + 'A ∨ ¬A is true in every row, and A ∧ ¬A in none.',
+    layout: 'single',
+    demos: [['A u A^C', '1'], ['A n A^C', '0']],
+    sets: 'Every point is either inside A or outside it, never both and '
+        + 'never neither. So A ∪ Aᶜ is always everything, and A ∩ Aᶜ is '
+        + 'always empty.',
+    logic: 'A is either true or false, never both and never neither. So '
+         + 'A ∨ ¬A is always True, and A ∧ ¬A is always False.',
   },
   Idempotent: {
-    demo: ['A u A', 'A'],
-    sets: 'Asking for the same region twice asks for nothing new.',
-    logic: 'Saying the same thing twice says nothing new.',
+    layout: 'pair',
+    demos: [['A u A', 'A']],
+    sets: 'Any operation applied to the same set twice returns that set '
+        + 'unchanged.',
+    logic: 'Any operation applied to the same variable returns the '
+         + 'original variable.',
+    gloss: 'idempotent: describes an action which can be repeated '
+         + 'multiple times without changing the result.',
   },
   Identity: {
-    demo: ['0 u A', 'A'],
-    sets: 'Adding nothing, or cutting down to everything, leaves a set '
-        + 'exactly as it was: ∅ and U are the do-nothing partners for ∪ '
-        + 'and ∩.',
-    logic: 'Or-ing with F, or and-ing with T, leaves a claim exactly as '
-         + 'it was: F and T are the do-nothing partners.',
+    layout: 'single',
+    demos: [['0 u A', 'A'], ['1 n A', 'A']],
+    sets: '∅ and U are the do-nothing partners: adding nothing, or '
+        + 'cutting down to everything, leaves a set exactly as it was.',
+    logic: 'F and T are the do-nothing partners: or-ing with F, or '
+         + 'and-ing with T, leaves a claim exactly as it was.',
   },
   Domination: {
-    demo: ['1 u A', '1'],
+    layout: 'single',
+    demos: [['1 u A', '1'], ['0 n A', '0']],
     sets: 'The extreme swallows whatever it meets: a union with U is U, '
         + 'an intersection with ∅ is ∅. The other side never gets a say.',
     logic: 'The extreme swallows whatever it meets: anything ∨ T is T, '
          + 'anything ∧ F is F. The other side never gets a say.',
   },
   Definition: {
-    demo: ['A - B', 'A n B^C'],
-    sets: 'Not a law but a definition. A − B is shorthand for "in A and '
-        + 'not in B", and spelling it out that way is what lets the '
-        + 'other laws reach it.',
-    logic: 'Not a law but a definition, spelling the shorthand out in '
-         + 'terms of the core operators so that the other laws can '
-         + 'reach it.',
+    layout: 'pair',
+    demos: [['A - B', 'A n B^C']],
+    sets: 'Not really a law, but some operations (set difference, '
+        + 'symmetric difference) are not easily manipulated '
+        + 'algebraically. Applying their definition breaks one of these '
+        + 'operators into its pieces, which are more malleable.',
+    logic: 'Not really a law, but some operations (difference, '
+         + 'exclusive or) are not easily manipulated algebraically. '
+         + 'Applying their definition breaks one of these operators '
+         + 'into its pieces, which are more malleable.',
   },
 };
 
-/* One side of the demonstration: the expression, and what it picks out.
+/* Law demonstrations always read in A, B, C. They are about the shape
+   of an identity, not about whatever the student happens to have
+   loaded, and borrowing the student's letters left a three-variable law
+   rendering its third as "?" whenever the working expression had two. */
+const LAW_LETTERS = PRESETS.ABC;
+
+/* One panel of a demonstration: an expression, and what it picks out.
    Clicking a part re-points the diagram at that part, which is the same
-   gesture the main expression pane uses. */
-function lawSide(e, i, nv) {
+   gesture the main expression pane uses.
+
+   A part that the table already has a column for is highlighted where
+   it stands rather than being drawn again -- asking about A when A is
+   the first column should answer with that column. */
+function lawSide(e, i, nv, work = false) {
   const box = el('div', { class: 'side' });
   const tbox = el('div', { class: 't' });
   const dia = el('div', { class: 'dia' + (S.mode === 'sets' ? ' minivenn' : '') });
   const cap = el('div', { class: 'sidecap' });
+  const base = work ? TT.gateNodes(e).slice(0, -1) : [];
+  const drawn = (n) => n.k === 'var' || key(n) === key(e) ||
+                       base.some((c) => key(c) === key(n));
   let sel = null;
 
   const draw = () => {
     clear(tbox);
-    tbox.appendChild(nodeDom(e, [], null));
+    tbox.appendChild(nodeDom(e, [], null, LAW_LETTERS));
     if (sel) nodeAtPath(tbox, sel)?.classList.add('sel');
     const node = sel ? at(e, sel) : null;
     clear(dia);
     if (S.mode === 'sets') {
-      Venn.render(dia, { nv, on: mask(e, nv), letters: S.letters,
+      Venn.render(dia, { nv, on: mask(e, nv), letters: LAW_LETTERS,
         mode: notn(), idp: `d${i}`,
         sel: node ? mask(node, nv) : null });
     } else {
-      TT.render(dia, { expr: e, nv, letters: S.letters, mode: notn(),
+      TT.render(dia, { expr: e, nv, letters: LAW_LETTERS, mode: notn(),
         mask: mask(e, nv), compact: true, selNode: node,
-        workCols: node && node !== e ? [node] : [] });
+        workCols: node && !drawn(node) ? [...base, node] : base });
     }
     cap.textContent = node
-      ? `showing ${toText(node, notn(), S.letters)}`
-      : 'click any part to see what it picks out';
+      ? `showing ${toText(node, notn(), LAW_LETTERS)}` : '';
   };
 
   tbox.addEventListener('click', (ev) => {
@@ -819,30 +858,42 @@ function lawSide(e, i, nv) {
   return box;
 }
 
+/* A Venn has no columns to set against each other, so the single-table
+   layout only applies where there is a table; in sets it falls back to
+   the pair. 'solo' is one panel in either notation. */
+function lawDemo([ls, rs], layout, nv, idx) {
+  const L = parse(ls).expr;
+  if (layout === 'solo' || (layout === 'single' && S.mode !== 'sets')) {
+    return el('div', { class: 'lawgrid one' },
+      [lawSide(L, idx, nv, layout === 'single')]);
+  }
+  const R = parse(rs).expr;
+  return el('div', { class: 'lawgrid' }, [
+    lawSide(L, idx * 2, nv), el('div', { class: 'mid', text: '=' }),
+    lawSide(R, idx * 2 + 1, nv)]);
+}
+
 function showLaw(group) {
   const law = LAWS[group];
-  const [ls, rs] = law.demo;
-  const L = parse(ls).expr, R = parse(rs).expr;
-  const nv = Math.max(2, maxVar(L) + 1, maxVar(R) + 1);
-
-  const body = group === 'Associative' ? null
-    : el('div', { class: 'lawgrid' },
-        [lawSide(L, 0, nv), el('div', { class: 'mid', text: '=' }),
-         lawSide(R, 1, nv)]);
+  const need = Math.max(1, ...law.demos.flat()
+    .map((src) => maxVar(parse(src).expr) + 1));
+  const nv = S.mode === 'sets' ? Math.max(2, need) : need;
 
   // A law whose two sides disagree is a broken rule table, not a
   // teaching point -- say so rather than drawing it as fact.
-  const broken = group !== 'Associative' && mask(L, nv) !== mask(R, nv);
+  const broken = law.demos.some(([l, r]) =>
+    mask(parse(l).expr, nv) !== mask(parse(r).expr, nv));
 
-  const canApply = (available().get(group) || []).length > 0 &&
-                   group !== 'Associative';
+  const canApply = (available().get(group) || []).length > 0;
   openCard(el('div', { class: 'card' }, [
-    el('h3', { text: label(group) + (group === 'Associative' ? '' : ' Law') }),
+    el('h3', { text: label(group) + ' Law' }),
     el('p', { class: 'lawwhy', text: law[notn()] }),
+    law.gloss ? el('p', { class: 'lawgloss', text: law.gloss }) : null,
     broken ? el('p', { class: 'err', text: 'these two sides disagree — '
                                          + 'that is a bug in the rule table' })
            : null,
-    body,
+    ...law.demos.map((d, i) => lawDemo(d, law.layout, nv, i)),
+    law.warn ? el('p', { class: 'lawwarn', text: law.warn[notn()] }) : null,
     el('div', { class: 'cardfoot' }, [
       canApply ? el('button', { class: 'primary',
         text: 'try it on my expression',

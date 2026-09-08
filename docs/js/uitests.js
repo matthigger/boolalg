@@ -353,6 +353,8 @@ setTimeout(async () => {
     eqv('and level with each other', Math.round(r0.top), Math.round(r1.top));
     ok('no essay on both sides agreeing',
        !card().textContent.includes('pick out exactly the same'));
+    ok('and no invitation to click',
+       !card().textContent.includes('click any part'));
     ok('an intuition is offered',
        card().querySelector('.lawwhy').textContent.length > 40);
 
@@ -360,6 +362,39 @@ setTimeout(async () => {
     const side0 = sides[0];
     const cols = () => side0.querySelectorAll('table.tt thead th').length;
     const before = cols();
+    // Picking a part that the table already has a column for must
+    // highlight that column, not draw a second one just like it.
+    {
+      const cols = () => side0.querySelectorAll('table.tt thead th').length;
+      const marked = () =>
+        [...side0.querySelectorAll('table.tt thead th.selcol')]
+          .map((h) => h.textContent);
+      const part = (p) => [...side0.querySelectorAll('.t .nd')]
+        .find((n) => n.dataset.path === p);
+      const n0 = cols();
+
+      part('["a",0]').click();                 // the variable A
+      eqv('picking a variable adds no column', cols(), n0);
+      eqv('it highlights the one already there', marked().join(), 'A');
+      ok('and down the column too',
+         side0.querySelectorAll('table.tt tbody td.selcol').length === 4,
+         String(side0.querySelectorAll('table.tt tbody td.selcol').length));
+
+      part('["a",0]').click();
+      eqv('clicking it again clears the highlight', marked().length, 0);
+
+      part('[]').click();                      // the whole expression
+      eqv('picking the whole thing adds no column', cols(), n0);
+      eqv('it highlights the output column', marked().join(), '¬(A ∨ B)');
+      part('[]').click();
+
+      part('["a"]').click();                   // an inner subexpression
+      eqv('but an inner part does get a column', cols(), n0 + 1);
+      eqv('and that column is the highlighted one', marked().join(), 'A ∨ B');
+      part('["a"]').click();
+      eqv('and it goes away again', cols(), n0);
+    }
+
     // Re-query each time: drawing rebuilds the spans, so a reference
     // taken before a click is detached by the time of the next one.
     const part = () => [...side0.querySelectorAll('.t .nd')]
@@ -385,6 +420,48 @@ setTimeout(async () => {
     nd.click();
     ok('clicking a part shades what it picks out',
        card().querySelectorAll('.side .vregion.sel').length > 0);
+    shut();
+
+    // A three-variable law rendered its third variable as "?" whenever
+    // the loaded expression only had two, because the card borrowed the
+    // student's letters.
+    shut();
+    B.load('p | q', 'logic');
+    info('Distributive').click();
+    ok('a law reads in A, B, C whatever is loaded',
+       !card().textContent.includes('?'), card().textContent.slice(0, 120));
+    eqv('including its table columns',
+        [...card().querySelectorAll('.lawgrid table.tt thead th')]
+          .slice(0, 3).map((h) => h.textContent).join(), 'A,B,C');
+    shut();
+
+    // Laws whose point is a constant or a repeated column show one
+    // table carrying the whole statement.
+    B.load('A u B', 'logic');
+    for (const [g, want] of [['Double Negation', 'A,¬A,¬¬A'],
+                             ['Identity', 'A,F ∨ A'],
+                             ['Complement', 'A,¬A,A ∨ ¬A']]) {
+      info(g).click();
+      eqv(`${g} shows one table`,
+          card().querySelectorAll('.lawgrid').length >= 1 &&
+          card().querySelectorAll('.lawgrid .side').length ===
+            card().querySelectorAll('.lawgrid').length, true);
+      eqv(`${g} columns`,
+          [...card().querySelectorAll('.lawgrid table.tt thead th')]
+            .map((h) => h.textContent).slice(0, want.split(',').length)
+            .join(), want);
+      shut();
+    }
+
+    info('Complement').click();
+    eqv('Complement shows both forms',
+        card().querySelectorAll('.lawgrid').length, 2);
+    shut();
+    info('Associative').click();
+    eqv('Associative shows the chains it licenses',
+        card().querySelectorAll('.lawgrid').length, 2);
+    ok('and warns about mixing operations',
+       card().querySelector('.lawwarn').textContent.includes('same one'));
     shut();
 
     // Every law has to speak both notations.

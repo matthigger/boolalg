@@ -22,7 +22,7 @@
 
 import { el, clear } from './dom.js';
 import { toText } from './text.js';
-import { evalAt, isChain } from './core.js';
+import { evalAt, isChain, key } from './core.js';
 
 const VAR_W = 42;       // px per variable column
 const WORK_BLOCK = 288; // px shared by however many working columns
@@ -79,13 +79,28 @@ export function render(host, opts) {
   ]);
 
   const label = (n) => toText(n, mode, letters);
+
+  /* Which column the selection lands in, by value rather than by node
+     identity: a clicked A is a different object from the A the header
+     was built from, and picking a column that is already drawn is the
+     whole point of asking. -1 when the selection has no column. */
+  const selCol = (() => {
+    if (!selNode) return -1;
+    if (selNode.k === 'var') return selNode.i < nv ? selNode.i : -1;
+    const k = key(selNode);
+    const i = cols.findIndex((c) => key(c) === k);
+    if (i >= 0) return nv + i;
+    return key(expr) === k ? nv + cols.length : -1;
+  })();
+  const sel = (i) => (i === selCol ? ' selcol' : '');
+
   const head = el('tr', {}, [
-    ...letters.slice(0, nv).map((L) => el('th', { class: 'var', text: L })),
-    ...cols.map((n) => el('th', {
-      class: 'sub' + (selNode && n === selNode ? ' selcol' : ''),
-      text: label(n), title: label(n),
+    ...letters.slice(0, nv).map((L, i) =>
+      el('th', { class: 'var' + sel(i), text: L })),
+    ...cols.map((n, i) => el('th', {
+      class: 'sub' + sel(nv + i), text: label(n), title: label(n),
     })),
-    el('th', { class: selNode === expr ? 'selcol' : '',
+    el('th', { class: sel(nv + cols.length).trim(),
                text: label(expr), title: label(expr) }),
   ]);
 
@@ -99,11 +114,14 @@ export function render(host, opts) {
       onmouseenter: () => onHoverRow?.(r),
     }, [
       ...Array.from({ length: nv }, (_, i) =>
-        el('td', { class: 'v', text: String((r >> (nv - 1 - i)) & 1) })),
-      ...cols.map((n) => el('td', {
-        class: vals.get(n) ? 'one' : '', text: vals.get(n) ? '1' : '0' })),
+        el('td', { class: 'v' + sel(i),
+                   text: String((r >> (nv - 1 - i)) & 1) })),
+      ...cols.map((n, i) => el('td', {
+        class: (vals.get(n) ? 'one' : '') + sel(nv + i),
+        text: vals.get(n) ? '1' : '0' })),
       el('td', {
-        class: 'out' + (on ? ' one' : ''), text: on ? '1' : '0',
+        class: 'out' + (on ? ' one' : '') + sel(nv + cols.length),
+        text: on ? '1' : '0',
         title: 'click to flip this row',
         onclick: () => onToggle?.(r),
       }),
