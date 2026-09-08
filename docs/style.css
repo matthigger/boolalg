@@ -359,6 +359,24 @@ button.ghost:disabled { color: var(--dim); }
                               border-radius: 4px; }
 .cardfoot { display: flex; gap: 8px; justify-content: flex-end;
             margin-top: 16px; }
+.card.wide { max-width: min(880px, 94vw); }
+.exgroup + .exgroup { margin-top: 14px; }
+.exhead { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.extag {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em;
+  font-weight: 700; padding: 2px 9px; border-radius: 999px;
+  color: var(--on-accent);
+}
+.extag.mild { background: #4a9d5f; }
+.extag.medium { background: #d98324; }
+.extag.spicy { background: #c0392b; }
+.exwhy { font-size: 12px; color: var(--muted); }
+button.makeup {
+  margin-left: auto; font: inherit; font-size: 12px; padding: 4px 12px;
+  border: 1px solid var(--accent); border-radius: 999px;
+  background: var(--panel); color: var(--accent); cursor: pointer;
+}
+button.makeup:hover { background: var(--accent); color: var(--on-accent); }
 .exlist { display: flex; flex-direction: column; gap: 2px; }
 .exlist button {
   text-align: left; font: inherit; font-size: 13.5px; padding: 8px 10px;

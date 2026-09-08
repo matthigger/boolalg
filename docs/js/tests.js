@@ -9,6 +9,7 @@ import { tableData, tableCSV, tableTeX, derivationTeX, slug }
   from './export.js';
 import { rewritesOf, searchRewrites, label } from './rules.js';
 import { minTable, target, derive, steps } from './minimize.js';
+import { CATALOGUE, LEVELS, makeOne } from './examples.js';
 
 const log = [];
 let pass = 0, fail = 0;
@@ -306,6 +307,52 @@ ok(`derivations are short (max ${worst} steps, ${worstNodes} nodes)`,
 
   eqv('slug is filesystem-safe', slug('(A \u222a B)\u1d9c'), 'a-b');
   eqv('slug never comes back empty', slug('\u2229\u222a'), 'expression');
+}
+
+/* ---- 13. examples (SPEC.md section 3.1) ---------------------------- */
+{
+  // The band an example is filed under is a claim about how much work
+  // it takes; check the claim rather than trusting the filing.
+  // A mild example may be minimal already; the harder bands may not be.
+  const BOUND = { mild: [0, 2], medium: [3, 5], spicy: [6, 40] };
+  const misfiled = [];
+  let parsed = 0;
+  for (const level of LEVELS) {
+    for (const [src, mode] of CATALOGUE[level]) {
+      let e;
+      try { e = parse(src).expr; parsed++; }
+      catch (err) { misfiled.push(`${src}: ${err.message}`); continue; }
+      const nv = mode === 'sets' ? 3 : 3;
+      const t = target(e, nv);
+      const d = derive(desugar(e), t.cost, nv,
+                       { maxNodes: 8000, maxSteps: 24 });
+      if (!d.ok) { misfiled.push(`${src}: no derivation found`); continue; }
+      const [lo, hi] = BOUND[level];
+      if (d.path.length < lo || d.path.length > hi) {
+        misfiled.push(`${src} is ${d.path.length} steps, not ${level}`);
+      }
+    }
+  }
+  eqv('every example parses', parsed,
+      LEVELS.reduce((a, l) => a + CATALOGUE[l].length, 0));
+  ok('and is filed under the right difficulty', misfiled.length === 0,
+     misfiled.join(' | '));
+
+  // The maker has to land in its own band, or the button lies.
+  let sd = 4242;
+  const r = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (const level of LEVELS) {
+    let found = 0, wrong = '';
+    for (let i = 0; i < 3; i++) {
+      const g = makeOne(level, 'logic', r);
+      if (!g) continue;
+      found++;
+      const [lo, hi] = BOUND[level];
+      if (g.steps < lo || g.steps > hi) wrong = `${g.src} = ${g.steps} steps`;
+    }
+    ok(`make one up produces a ${level} problem`, found > 0);
+    ok(`and it lands in the ${level} band`, !wrong, wrong);
+  }
 }
 
 const summary = `RESULT pass=${pass} fail=${fail}`;

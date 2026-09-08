@@ -13,6 +13,7 @@ let pass = 0, fail = 0;
 const ok = (n, c, d = '') => c ? (pass++, log.push(`  ok   ${n}`))
                                : (fail++, log.push(`  FAIL ${n} ${d}`));
 const eqv = (n, g, w) => ok(n, g === w, `got ${JSON.stringify(g)} want ${JSON.stringify(w)}`);
+const notnOf = (m) => (m === 'sets' ? 'sets' : 'logic');
 
 setTimeout(async () => {
   const B = window.BAE;
@@ -286,6 +287,43 @@ setTimeout(async () => {
     ok('right down to none at all', counts.has(0), [...counts].join());
     eqv('A, B, C never moved', places.size, 1);
     eqv('and the wrapper never moved or resized', wraps.size, 1);
+  }
+
+  /* -- the example catalogue (SPEC.md 3.1) -- */
+  {
+    const card = () => document.querySelector('#overlay .card');
+    const shut = () => [...card().querySelectorAll('.cardfoot button')]
+      .find((b) => b.textContent === 'dismiss').click();
+
+    B.load('A u B', 'sets');
+    document.getElementById('examplesBtn').click();
+    eqv('three difficulties',
+        [...card().querySelectorAll('.extag')].map((n) => n.textContent).join(),
+        'mild,medium,spicy');
+    eqv('each can make one up',
+        card().querySelectorAll('button.makeup').length, 3);
+    ok('and each lists some',
+       [...card().querySelectorAll('.exlist')]
+         .every((l) => l.children.length >= 4));
+
+    const first = card().querySelector('.exlist button');
+    const wanted = first.querySelector('.ex-e').textContent;
+    first.click();
+    ok('clicking one loads it', !!B.S.lines.length);
+    eqv('the one that was clicked',
+        toText(B.S.lines[0].expr, notnOf(B.S.mode), B.S.letters), wanted);
+    ok('and the card gets out of the way',
+       document.getElementById('overlay').hidden);
+
+    document.getElementById('examplesBtn').click();
+    const before = toText(B.S.lines[0].expr, 'logic', B.S.letters);
+    [...card().querySelectorAll('button.makeup')]
+      .find((b) => b.closest('.exgroup').querySelector('.extag')
+        .textContent === 'mild').click();
+    ok('make one up loads a fresh problem', !!B.S.lines.length);
+    ok('and there is something to do with it',
+       B.plan() && !B.plan().done);
+    if (!document.getElementById('overlay').hidden) shut();
   }
 
   /* -- law cards (SPEC.md 6.3) -- */

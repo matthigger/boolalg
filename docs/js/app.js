@@ -11,6 +11,7 @@ import * as Venn from './venn.js';
 import * as TT from './truthtable.js';
 import * as Circuit from './circuit.js';
 import * as Ex from './export.js';
+import { CATALOGUE, LEVELS, BLURB, makeOne } from './examples.js';
 
 /* ---- state -------------------------------------------------------- */
 
@@ -849,25 +850,46 @@ function showLaw(group) {
 
 /* ---- examples (SPEC.md section 3.1) ------------------------------- */
 
-const EXAMPLES = [
-  ['(A u B)^C', 'sets', 'DeMorgan on a Venn diagram — watch the shading hold still'],
-  ['A n (A u B)', 'sets', 'Absorption: a big expression collapses in one step'],
-  ['(A u B) - C', 'sets', 'difference, and the Definition step that unlocks it'],
-  ['~((A & B) | ~C)', 'logic', 'circuit01 — truth table, circuit, wire tracing'],
-  ['(C & B) | (~C & B) | (A & ~B)', 'logic', 'circuit04 — simplify it to A ∨ B'],
-  ['(~A | ~B) | (A & B)', 'logic', 'show this is always true'],
-];
-
+/* Three difficulties, each with a catalogue and a maker. See
+   examples.js for what puts a problem in a band. */
 function showExamples() {
-  openCard(el('div', { class: 'card' }, [
+  const row = ([src, mode, why]) =>
+    el('button', { onclick: () => { closeCard(); load(src, mode); } }, [
+      el('div', { class: 'ex-e',
+        text: toText(parse(src).expr, mode, PRESETS.ABC) }),
+      el('div', { class: 'ex-d', text: why }),
+    ]);
+
+  const section = (level) => {
+    const list = el('div', { class: 'exlist' },
+      CATALOGUE[level].map(row));
+    const make = el('button', {
+      class: 'makeup', type: 'button', text: 'make one up',
+      onclick: () => {
+        const g = makeOne(level, notn());
+        if (!g) return toast('the dice were unkind — try that again');
+        closeCard();
+        load(g.src, S.mode);
+        toast(`a fresh ${level} one: ${g.steps} step` +
+              `${g.steps === 1 ? '' : 's'} to the minimum`);
+      },
+    });
+    return el('div', { class: 'exgroup' }, [
+      el('div', { class: 'exhead' }, [
+        el('span', { class: `extag ${level}`, text: level }),
+        el('span', { class: 'exwhy', text: BLURB[level] }),
+        make,
+      ]),
+      list,
+    ]);
+  };
+
+  openCard(el('div', { class: 'card wide' }, [
     el('h3', { text: 'Examples' }),
-    el('p', { text: 'Each one loads an expression and gets out of the way.' }),
-    el('div', { class: 'exlist' }, EXAMPLES.map(([src, mode, why]) =>
-      el('button', { onclick: () => { closeCard(); load(src, mode); } }, [
-        el('div', { class: 'ex-e',
-          text: toText(parse(src).expr, mode, PRESETS.ABC) }),
-        el('div', { class: 'ex-d', text: why }),
-      ]))),
+    el('p', { text: 'Each one loads an expression and gets out of the '
+                  + 'way. Difficulty is the number of steps between it '
+                  + 'and its simplest form.' }),
+    ...LEVELS.map(section),
     el('div', { class: 'cardfoot' }, [
       el('button', { class: 'ghost', text: 'start empty',
         onclick: () => { closeCard(); S.lines = []; S.sel = null; render(); } }),
