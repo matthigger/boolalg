@@ -13,8 +13,13 @@ Sets mode shows the same expression as a Venn diagram:
 
 ![sets mode](media/sets-mode.png)
 
-- **docs/** — the app. Plain ES modules, no build step: deploy the
-  folder, or run `python3 serve.py` and open the port it prints. Use
+- **docs/** — the app, and what GitHub Pages serves (`main`, `/docs`);
+  pushing to `main` is the whole deploy. `.nojekyll` there turns the
+  Jekyll pass off, so the folder is served exactly as it sits: nothing
+  is dropped for starting with an underscore, and no `{{` in the LaTeX
+  export is mistaken for a template. Plain ES modules, no build step:
+  deploy the folder, or run `python3 serve.py` and open the port it
+  prints. Use
   that rather than `python3 -m http.server`, which sends no
   `Cache-Control` and will happily serve a stale module after an edit.
   Tests are `docs/test.html` (core) and `docs/uitest.html`
