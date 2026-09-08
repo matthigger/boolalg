@@ -246,6 +246,36 @@ setTimeout(async () => {
     eqv('and a smaller one narrows again', B.S.nv, 2);
   }
 
+  /* -- the sets tab is declined, not obeyed, while a fourth variable
+     is in play. Narrowing to three re-seeded from a mask read at the
+     wrong width, which swapped the reader's expression for an
+     unrelated one and lost the derivation with it. -- */
+  {
+    const setsBtn = document.querySelector('#modeToggle [data-mode=sets]');
+    B.load('(C & B) | (~C & B) | (A & ~B) | (B & ~C & ~D)', 'logic');
+    B.applyNext();
+    const before = S.lines.map((ln) => toText(ln.expr, 'logic', S.letters));
+    ok('the derivation ran a step', before.length === 2, before.join(' / '));
+    eqv('the sets tab reads as unavailable',
+        setsBtn.getAttribute('aria-disabled'), 'true');
+    setsBtn.click();
+    eqv('clicking it leaves the view in logic', S.mode, 'logic');
+    eqv('all four variables are still there', S.nv, 4);
+    eqv('and the derivation is untouched',
+        S.lines.map((ln) => toText(ln.expr, 'logic', S.letters)).join(' / '),
+        before.join(' / '));
+
+    B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+    eqv('three variables leave the tab available',
+        setsBtn.getAttribute('aria-disabled'), 'false');
+    setsBtn.click();
+    eqv('and it still switches', S.mode, 'sets');
+    eqv('carrying the expression over',
+        toText(S.lines[0].expr, 'logic', S.letters),
+        '(C ∧ B) ∨ (¬C ∧ B) ∨ (A ∧ ¬B)');
+    S.mode = 'logic'; B.render();
+  }
+
   /* -- leaving the table stops tracing. The circuit used to stay stuck
      on whichever row the pointer last touched. -- */
   B.load('(A & B) | ~C', 'circuit');

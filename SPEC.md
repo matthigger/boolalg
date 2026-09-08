@@ -1105,7 +1105,16 @@ circuit cost nothing, but a faithful 4-set Venn needs four ellipses,
 which is hard to read and fiddly to click. **The four-ellipse Venn is
 not built, at any phase.** Loading a four-variable expression while in
 sets mode moves the view to logic and says why — the alternative is
-dropping a variable behind the reader's back. Narrowing the other way,
+dropping a variable behind the reader's back.
+
+The sets tab is refused from the other side for the same reason: while
+any line of the derivation uses the fourth variable, the tab reads as
+unavailable and a click on it explains itself rather than obeying. A
+toggle between views keeps the mask and the derivation (§4.1), and
+narrowing to three to make room for the Venn cannot keep either — a
+mask read at three variables is not the four-variable expression's
+mask, so what came back was an unrelated expression with the reader's
+work gone. Narrowing the other way,
 where an expression no longer needs a variable the derivation used,
 re-seeds from the truncated mask with the same notice as §8.2.
 

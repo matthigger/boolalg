@@ -90,7 +90,8 @@ header .modes { margin-left: 4px; }
   background: var(--accent); color: var(--on-accent);
   box-shadow: 0 2px 6px #2d70b340;
 }
-.modes button:disabled, .seg button:disabled {
+.modes button:disabled, .seg button:disabled,
+.modes button[aria-disabled=true] {
   color: var(--dim); cursor: default;
 }
 
