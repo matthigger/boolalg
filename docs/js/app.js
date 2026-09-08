@@ -361,6 +361,16 @@ function tableExports() {
   ]);
 }
 
+function vennExports() {
+  return exportBar([
+    ['png', async () => {
+      const g = document.querySelector('#viewer svg.venn');
+      if (!g) throw new Error('nothing drawn yet');
+      Ex.canvasPNG(await Ex.svgPNG(g), `${exportBase()}-venn.png`);
+    }],
+  ]);
+}
+
 function circuitExports() {
   return exportBar([
     ['png', async () => {
@@ -462,7 +472,8 @@ function renderViewer() {
 
   if (S.mode === 'sets') {
     const pane = el('div', { class: 'pane' });
-    pane.appendChild(el('h2', { text: 'Venn diagram' }));
+    pane.appendChild(el('h2', {},
+      [el('span', { text: 'Venn diagram' }), vennExports()]));
     const body = el('div', { class: 'panebody' });
     const cap = el('div', { class: 'caption' });
     const idle = () => (selMask != null
@@ -688,6 +699,12 @@ const LAWS = {
   Associative: {
     layout: 'solo',
     demos: [['A u B u C', 'A u B u C'], ['A n B n C', 'A n B n C']],
+    // Written out rather than read off the demo: the parser flattens
+    // both bracketings to the same node, which is the law itself.
+    rules: {
+      sets: ['(A ∪ B) ∪ C = A ∪ (B ∪ C)', '(A ∩ B) ∩ C = A ∩ (B ∩ C)'],
+      logic: ['(A ∨ B) ∨ C = A ∨ (B ∨ C)', '(A ∧ B) ∧ C = A ∧ (B ∧ C)'],
+    },
     sets: '(A ∪ B) ∪ C = A ∪ (B ∪ C): it does not matter which union '
         + 'you do first. Because the answer never depends on the '
         + 'bracketing, we drop the brackets and write A ∪ B ∪ C. The '
@@ -745,11 +762,9 @@ const LAWS = {
   Absorption: {
     layout: 'pair',
     demos: [['A n (A u B)', 'A']],
-    sets: 'The larger set already contains the smaller one, so cutting '
-        + 'down to it changes nothing: once you are inside A, being '
-        + 'inside A ∪ B is automatic. B never gets to matter.',
-    logic: 'The weaker claim is already carried by the stronger one: if '
-         + 'A holds then A ∨ B holds too, so requiring both is just '
+    sets: 'Once you are inside A, being inside A ∪ B is automatic. B '
+        + 'never gets to matter.',
+    logic: 'If A holds then A ∨ B holds too, so requiring both is just '
          + 'requiring A. B never gets to matter.',
   },
   Complement: {
@@ -762,8 +777,8 @@ const LAWS = {
          + 'A ∨ ¬A is always True, and A ∧ ¬A is always False.',
   },
   Idempotent: {
-    layout: 'pair',
-    demos: [['A u A', 'A']],
+    layout: 'single',
+    demos: [['A u A', 'A'], ['A n A', 'A']],
     sets: 'Any operation applied to the same set twice returns that set '
         + 'unchanged.',
     logic: 'Any operation applied to the same variable returns the '
@@ -774,9 +789,9 @@ const LAWS = {
   Identity: {
     layout: 'single',
     demos: [['0 u A', 'A'], ['1 n A', 'A']],
-    sets: '∅ and U are the do-nothing partners: adding nothing, or '
+    sets: '∅ and U can be do-nothing partners: adding nothing, or '
         + 'cutting down to everything, leaves a set exactly as it was.',
-    logic: 'F and T are the do-nothing partners: or-ing with F, or '
+    logic: 'F and T can be do-nothing partners: or-ing with F, or '
          + 'and-ing with T, leaves a claim exactly as it was.',
   },
   Domination: {
@@ -800,6 +815,10 @@ const LAWS = {
          + 'Applying their definition breaks one of these operators '
          + 'into its pieces, which are more malleable. It also '
          + 'settles a negated constant: ¬F is T.',
+    more: {
+      sets: ['A Δ B = (A − B) ∪ (B − A)', '∅ᶜ = U', 'Uᶜ = ∅'],
+      logic: ['A ⊕ B = (A − B) ∨ (B − A)', '¬F = T', '¬T = F'],
+    },
   },
 };
 
@@ -816,7 +835,7 @@ const LAW_LETTERS = PRESETS.ABC;
    A part that the table already has a column for is highlighted where
    it stands rather than being drawn again -- asking about A when A is
    the first column should answer with that column. */
-function lawSide(e, i, nv, work = false) {
+function lawSide(e, i, nv, work = false, suffix = null) {
   const box = el('div', { class: 'side' });
   const tbox = el('div', { class: 't' });
   const dia = el('div', { class: 'dia' + (S.mode === 'sets' ? ' minivenn' : '') });
@@ -829,6 +848,9 @@ function lawSide(e, i, nv, work = false) {
   const draw = () => {
     clear(tbox);
     tbox.appendChild(nodeDom(e, [], null, LAW_LETTERS));
+    // The statement is the heading, so the panel shows all of it: the
+    // left side stays clickable, the right side is just what it equals.
+    if (suffix) tbox.appendChild(txt(` = ${suffix}`));
     if (sel) nodeAtPath(tbox, sel)?.classList.add('sel');
     const node = sel ? at(e, sel) : null;
     clear(dia);
@@ -860,19 +882,42 @@ function lawSide(e, i, nv, work = false) {
   return box;
 }
 
-/* A Venn has no columns to set against each other, so the single-table
-   layout only applies where there is a table; in sets it falls back to
-   the pair. 'solo' is one panel in either notation. */
-function lawDemo([ls, rs], layout, nv, idx) {
+/* One demonstration, headed by the rule it demonstrates.
+
+   'pair' sets the two sides against an equals sign, and needs no
+   heading -- the sides are the statement. 'single' and 'solo' show one
+   panel, so the rule goes above it in full; in logic 'single' puts the
+   working in the table's columns, which a Venn has no room for, so in
+   sets the two behave alike. */
+function lawDemo(law, idx, nv) {
+  const [ls, rs] = law.demos[idx];
   const L = parse(ls).expr;
-  if (layout === 'solo' || (layout === 'single' && S.mode !== 'sets')) {
-    return el('div', { class: 'lawgrid one' },
-      [lawSide(L, idx, nv, layout === 'single')]);
+  const one = law.layout !== 'pair';
+  const box = el('div', { class: 'lawdemo' });
+
+  if (one) {
+    const R = parse(rs).expr;
+    const work = law.layout === 'single' && S.mode !== 'sets';
+    // Associative is the one law whose statement cannot be read off its
+    // demo -- both bracketings flatten to the same node -- so it heads
+    // the panel with the bracketed form and shows the chain beneath.
+    if (law.rules) {
+      box.appendChild(el('div', { class: 'lawrule',
+        text: law.rules[notn()][idx] }));
+      box.appendChild(el('div', { class: 'lawgrid one' },
+        [lawSide(L, idx, nv, work)]));
+    } else {
+      box.appendChild(el('div', { class: 'lawgrid one' },
+        [lawSide(L, idx, nv, work, toText(R, notn(), LAW_LETTERS))]));
+    }
+    return box;
   }
+
   const R = parse(rs).expr;
-  return el('div', { class: 'lawgrid' }, [
+  box.appendChild(el('div', { class: 'lawgrid' }, [
     lawSide(L, idx * 2, nv), el('div', { class: 'mid', text: '=' }),
-    lawSide(R, idx * 2 + 1, nv)]);
+    lawSide(R, idx * 2 + 1, nv)]));
+  return box;
 }
 
 function showLaw(group) {
@@ -894,7 +939,10 @@ function showLaw(group) {
     broken ? el('p', { class: 'err', text: 'these two sides disagree — '
                                          + 'that is a bug in the rule table' })
            : null,
-    ...law.demos.map((d, i) => lawDemo(d, law.layout, nv, i)),
+    el('div', { class: 'lawdemos' },
+      law.demos.map((_, i) => lawDemo(law, i, nv))),
+    law.more ? el('ul', { class: 'lawmore' },
+      law.more[notn()].map((t) => el('li', { text: t }))) : null,
     law.warn ? el('p', { class: 'lawwarn', text: law.warn[notn()] }) : null,
     el('div', { class: 'cardfoot' }, [
       canApply ? el('button', { class: 'primary',

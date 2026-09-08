@@ -537,6 +537,24 @@ setTimeout(async () => {
     eqv('the derivation offers both a picture and LaTeX',
         bar('#exprExport .exports').join(), 'png,tex');
 
+    B.load('(A u B)^C', 'sets');
+    eqv('the Venn offers a png',
+        bar('#viewer .pane h2 .exports').join(), 'png');
+    const vg = document.querySelector('#viewer svg.venn');
+    const vc = await Ex.svgPNG(vg, 1);
+    ok('and rasterises', vc.width > 20 && vc.height > 20,
+       `${vc.width}x${vc.height}`);
+    {
+      const px = vc.getContext('2d')
+        .getImageData(0, 0, vc.width, vc.height).data;
+      let ink = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i] < 240 || px[i + 1] < 240 || px[i + 2] < 240) ink++;
+      }
+      ok('with the shading on it', ink > 100, `${ink} dark px`);
+    }
+
+    B.load('(C & B) | (~C & B)', 'logic');
     B.S.mode = 'circuit'; B.render();
     const panes = [...document.querySelectorAll('#viewer .pane')];
     eqv('the circuit offers a png',

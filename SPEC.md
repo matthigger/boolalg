@@ -82,22 +82,34 @@ along with the rest.
 
 ## 3. Screen layout
 
-Single page: a header, a **viewer band** across the top, the expression
-pane beneath it, and the algebra pane as a right rail. No whole-page
-scrolling on a laptop; panes scroll internally.
+Single page: a header, a **viewer band** across the full width at the
+top, and beneath it a working band holding the expression pane with the
+algebra rail on its right. No whole-page scrolling on a laptop; panes
+scroll internally.
+
+The viewer is on top, and spans the width, because it is the thing the
+whole tool exists to hold still (§2): it belongs where it can stay put
+while the work happens below it. The derivation grows downward toward
+the input that seeded it, and can grow long without pushing the picture
+off the screen.
+
+The rules sit inside the working band rather than in a full-height rail
+because they act on the derivation beside them, not on the diagram. In
+that shorter column the rule list scrolls and the actions do not: the
+primary action of the pane is not something to go looking for.
 
     ┌──────────────────────────────────────────────────────────────┐
     │  Boolean Algebra Explorer  [ SETS | LOGIC | CIRCUIT ]         │
-    ├─────────────────────┬──────────────────┬─────────────────────┤
-    │  TRUTH TABLE        │  CIRCUIT         │  ALGEBRA            │
+    ├─────────────────────┬────────────────────────────────────────┤
+    │  TRUTH TABLE        │  CIRCUIT                    PNG CSV TEX│
     │  A B C │ ¬C │ out   │                  │  Associative     ⓘ  │
     │  0 0 0 │  1 │  0    │    ─┤&  ┐        │  Double Negation ⓘ  │
     │  0 0 1 │  0 │  1  ←─┼──── └── │≥1──    │  DeMorgan's   [x2]ⓘ │
     │  0 1 0 │  1 │  0    │         │        │  Distributive [x2]ⓘ │
     │  ...                │                  │  Absorption   [x2]ⓘ │
     │                     │                  │  Complement   [x2]ⓘ │
-    ├─────────────────────┴──────────────────┤  Idempotent   [x2]ⓘ │
-    │ [examples▾]   STEP MARKS[on|off] PNG TEX│  Identity     [x2]ⓘ │
+    ├─────────────────────┴────────────────────┬─────────────────────┤
+    │ [examples▾]   STEP MARKS[on|off] PNG TEX │  ALGEBRA            │
     │                                        │  Domination   [x2]ⓘ │
     │    (A ∧ B) ∨ ¬C                        │  Commutative  [x2]ⓘ │
     │  = ¬(A ∧ B) ∧ C       DeMorgan's   ×   │                     │
@@ -541,6 +553,14 @@ What the card does carry in words is **why the law is true**, written
 once per notation. "Every point is inside A or outside it" and "A is
 either true or false" are the same fact, but only one of them reads as
 an explanation to a student looking at a truth table.
+
+The forms of a law sit **beside** each other, not stacked: they are two
+instances of one statement, and stacking them reads as two separate
+facts. Each is headed by the rule in full, so a panel showing one side
+still says what it is demonstrating. Associative is the only law whose
+heading cannot be read off its demo -- both bracketings flatten to the
+same node -- so its heading is written out and the flattened chain sits
+below it.
 
 Not every law reads best as a pair. Where the point is that a column
 comes out constant, or matches one already present, the card shows **one
@@ -1185,7 +1205,8 @@ additive — a student never needs to see it — and lives behind an
 ### 16.1 Figure export
 
 **Built:** the truth table exports as PNG, CSV or a LaTeX `tabular`; the
-derivation as PNG or an `align*` (§16.2); the circuit as PNG. Each
+derivation as PNG or an `align*` (§16.2); the circuit and the Venn as
+PNG. Each
 control sits in the heading of the thing it exports, and every file is
 named after the expression. Rasters are drawn on a canvas rather than
 lifted from the DOM — going through a `foreignObject` would mean
@@ -1197,7 +1218,7 @@ The step marks (§5.3) are drawn in the exports exactly when they are
 shown on screen, the toggle driving both.
 
 **Not built:** SVG output, the blank/filled and plain/traced variants
-below, Venn export, and the `problem_repo` file-naming convention.
+below, and the `problem_repo` file-naming convention.
 
 Export the current viewer as **SVG** (vector, for LaTeX via
 `\includegraphics`) and **PNG** at 2x (for slides and Sphinx).
