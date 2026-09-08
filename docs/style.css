@@ -6,11 +6,17 @@
   --ink: #1d1f24;
   --muted: #6b7280;
   --line: #d8d4cd;
-  --accent: #1f6feb;           /* selection / primary fill */
+  /* Two colours, two meanings, on every surface. Blue is "where this
+     expression is true" -- shaded Venn regions, 1s in the table, live
+     wires. Green is "the part you selected", and nothing else. */
+  --accent: #1f6feb;           /* the whole line */
   --accent-soft: #1f6feb26;
   --accent-mid: #1f6feb59;
-  --warm: #b45309;             /* the whole line, behind a selection */
-  --on: #15803d;               /* a 1 on a wire */
+  --sel: #0f9d5e;              /* the selection */
+  --sel-soft: #0f9d5e26;
+  --sel-mid: #0f9d5e59;
+  --warm: #b45309;
+  --on: var(--accent);         /* a 1 on a wire: true, so blue */
   --off: #9ca3af;
   --focus: #f59e0b;
 }
@@ -39,7 +45,8 @@ header #examplesBtn { flex: none; }
   letter-spacing: .08em;
 }
 .modes button:first-child { border-radius: 6px 0 0 6px; }
-.modes button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.modes button:not(:first-child) { border-left: 0; }
+.modes button:last-child { border-radius: 0 6px 6px 0; }
 .modes button[aria-selected=true], .seg button[aria-selected=true] {
   background: var(--accent); color: #fff; border-color: var(--accent);
 }
@@ -73,7 +80,14 @@ main {
 }
 .panebody { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px;
              display: flex; align-items: center; justify-content: center; }
-.pane.tt-pane .panebody { align-items: flex-start; }
+/* Block, not flex. A centred flex child that outgrows its container
+   overflows equally in both directions and the left of it becomes
+   unreachable -- which silently ate the A column. Under block layout
+   `margin: 0 auto` collapses to 0 when there is no room, so a wide
+   table starts at the left edge and scrolls honestly. */
+.pane.tt-pane .panebody { display: block; }
+/* The table needs more of the row than the circuit does. */
+.pane.tt-pane { flex: 1.25; }
 .caption { font-size: 12px; color: var(--muted); margin: 2px 14px 8px; }
 
 svg.venn { display: block; margin: 0 auto; cursor: pointer;
@@ -81,21 +95,30 @@ svg.venn { display: block; margin: 0 auto; cursor: pointer;
 .minivenn svg.venn { height: 190px; }
 .vregion { fill: transparent; }
 .vregion.on { fill: var(--accent); fill-opacity: .30; }
-.vregion.sel { fill: var(--accent); fill-opacity: .55; }
+.vregion.sel { fill: var(--sel); fill-opacity: .58; }
 .vregion.hov { fill-opacity: .68; }
 .vcircle { fill: none; stroke: #5b6270; stroke-width: 1.6; }
 .vlabel { font-size: 15px; font-weight: 650; fill: var(--ink); }
 .vframe { fill: none; stroke: var(--line); }
 
-table.tt { border-collapse: collapse; font-variant-numeric: tabular-nums;
-           font-size: 13px; margin: 2px 0 8px; }
+/* table-layout: fixed makes the <col> widths binding, which is what
+   keeps A, B, C from sliding when a law adds or drops a working
+   column. See the header comment in truthtable.js. */
+.ttwrap { width: max-content; margin: 0 auto; }
+table.tt { border-collapse: collapse; table-layout: fixed;
+           font-variant-numeric: tabular-nums;
+           font-size: 16px; margin: 0 auto; }
 table.tt th, table.tt td {
-  border: 1px solid var(--line); padding: 2px 7px; text-align: center;
+  border: 1px solid var(--line); padding: 5px 8px; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-table.tt th { font-weight: 600; background: #f4f2ee; white-space: nowrap;
-              font-size: 12px; }
+table.tt th { font-weight: 600; background: #f4f2ee; font-size: 13.5px; }
+table.tt th.var { font-size: 16px; }
 table.tt th.sub { color: var(--muted); font-weight: 500; }
-table.tt th.selcol { background: var(--accent-soft); color: var(--accent); }
+table.tt th.selcol { background: var(--sel-soft); color: var(--sel); }
+/* Holds the working columns' width open when there are none, so the
+   table is the same size before and after the first law. */
+table.tt .spacer { border: 0; background: none; padding: 0; }
 table.tt td.out { cursor: pointer; font-weight: 650; }
 table.tt td.one { background: var(--accent-soft); }
 table.tt tr.hov td { background: #fff6e0; }
@@ -107,7 +130,7 @@ svg.circuit { display: block; width: 100%; height: auto;
 .gate { fill: #fff; stroke: #444; stroke-width: 1.5; }
 .wire { stroke: #6b7280; stroke-width: 1.5; fill: none; }
 .wire.on { stroke: var(--on); stroke-width: 2.4; }
-.wire.sel { stroke: var(--accent); stroke-width: 2.6; }
+.wire.sel { stroke: var(--sel); stroke-width: 2.6; }
 .wdot { fill: #6b7280; }
 .wval { font-size: 10px; font-weight: 700; fill: var(--muted); }
 .wval.on { fill: var(--on); }
@@ -124,7 +147,7 @@ svg.circuit { display: block; width: 100%; height: auto;
 .dline.active .rule { color: var(--accent); }
 .expr { cursor: pointer; user-select: none; }
 .expr .nd { border-radius: 3px; padding: 0 1px; }
-.expr .nd.sel { background: var(--accent-mid); box-shadow: 0 0 0 1px var(--accent); }
+.expr .nd.sel { background: var(--sel-mid); box-shadow: 0 0 0 1px var(--sel); }
 .expr .nd.hov { background: var(--accent-soft); }
 .expr .span { background: #fff2cc; border-radius: 3px; }
 .dline { padding: 0 6px; border-radius: 5px; }

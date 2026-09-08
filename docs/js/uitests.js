@@ -186,19 +186,84 @@ setTimeout(() => {
        !!(hit && hit.closest('.nd')), hit ? `hit ${hit.id || hit.className}` : 'hit nothing');
   }
 
-  /* -- the DOM actually rendered -- */
+  /* -- each view draws its own things, and only its own -- */
   B.load('(A & B) | ~C', 'logic');
   ok('expression spans carry paths',
      document.querySelectorAll('#lines .nd[data-path]').length > 3);
-  ok('a truth table was drawn',
+  ok('logic draws a truth table',
      document.querySelectorAll('#viewer table.tt tbody tr').length === 8);
-  ok('a circuit was drawn',
+  ok('logic draws no circuit',
+     document.querySelectorAll('#viewer svg.circuit').length === 0);
+  B.S.mode = 'circuit'; B.render();
+  ok('circuit keeps the truth table',
+     document.querySelectorAll('#viewer table.tt tbody tr').length === 8);
+  ok('circuit adds the circuit',
      document.querySelectorAll('#viewer svg.circuit .gate').length >= 3);
   B.S.mode = 'sets'; B.render();
-  ok('a venn was drawn',
+  ok('sets draws a venn',
      document.querySelectorAll('#viewer svg.venn .vregion').length === 8);
+  ok('sets draws no truth table',
+     document.querySelectorAll('#viewer table.tt').length === 0);
   ok('rule rows rendered',
      document.querySelectorAll('#rules .rule-row').length === 11);
+
+  /* -- the view picks the notation: circuit reads as logic, not sets -- */
+  B.load('(A u B)^C', 'sets');
+  {
+    const shown = () => document.querySelector('#lines .expr').textContent;
+    const four = () => [...document.querySelectorAll('#varPick button')]
+      .find((b) => b.textContent === '4');
+    ok('sets reads in set symbols', /∪/.test(shown()), shown());
+    ok('four sets is refused', four().disabled);
+    B.S.mode = 'circuit'; B.render();
+    ok('circuit reads in logic symbols', /∨/.test(shown()), shown());
+    ok('four variables is allowed', !four().disabled);
+  }
+
+  /* -- leaving the table stops tracing. The circuit used to stay stuck
+     on whichever row the pointer last touched. -- */
+  B.load('(A & B) | ~C', 'circuit');
+  {
+    const head = () => document.querySelectorAll('#viewer .pane h2')[1].textContent;
+    const marked = () => document.querySelectorAll('#viewer tr.hov').length;
+    const rows = document.querySelectorAll('#viewer table.tt tbody tr');
+    rows[3].dispatchEvent(new MouseEvent('mouseenter'));
+    eqv('hovering a row traces it', S.hoverRow, 3);
+    eqv('exactly one row is marked', marked(), 1);
+    ok('the circuit names that row', /row /.test(head()), head());
+
+    document.querySelector('#viewer .ttwrap')
+      .dispatchEvent(new MouseEvent('mouseleave'));
+    ok('leaving the table clears the trace', S.hoverRow === null);
+    eqv('no row stays marked', marked(), 0);
+    ok('and the circuit drops the row', !/row /.test(head()), head());
+  }
+
+  /* -- a law may add and drop working columns, but A, B, C must not
+     slide sideways while the reader is looking at them -- */
+  B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+  {
+    const table = () => document.querySelector('#viewer table.tt');
+    const varXs = () => [...document.querySelectorAll('#viewer thead th.var')]
+      .map((th) => Math.round(th.getBoundingClientRect().x)).join();
+    const width = () => Math.round(table().getBoundingClientRect().width);
+    const cols = () => document.querySelectorAll('#viewer thead th.sub').length;
+
+    // Walk the whole derivation, not one step: the column count rises
+    // and falls along the way, and the variables have to sit still for
+    // all of it.
+    const places = new Set(), widths = new Set(), counts = new Set();
+    for (let i = 0; i < 12; i++) {
+      places.add(varXs()); widths.add(width()); counts.add(cols());
+      const p = B.plan();
+      if (!p || p.done || !p.ok) break;
+      B.applyNext();
+    }
+    ok('the derivation ran several steps', S.lines.length > 3, `${S.lines.length} lines`);
+    ok('and varied the working columns', counts.size > 1, [...counts].join());
+    eqv('A, B, C never moved', places.size, 1);
+    eqv('and the table never resized', widths.size, 1);
+  }
 
   document.getElementById('out').textContent =
     `RESULT pass=${pass} fail=${fail}\n\n` + log.join('\n');

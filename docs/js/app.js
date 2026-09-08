@@ -30,6 +30,17 @@ const cur = () => S.lines[S.selectedLine]?.expr ?? null;
 const lastExpr = () => S.lines.at(-1)?.expr ?? null;
 const curMask = () => (cur() ? mask(cur(), S.nv) : 0);
 
+/* Three views, two notations. `mode` picks what the viewer draws; the
+   glyphs an expression is written in follow from it, and logic and
+   circuit share the logic ones. Everything that renders text asks for
+   `notn()`, never `S.mode`, so adding a fourth view cannot silently
+   change how expressions read. */
+const NOTATION = { sets: 'sets', logic: 'logic', circuit: 'logic' };
+const notn = (m = S.mode) => NOTATION[m] ?? 'logic';
+const MODES = ['sets', 'logic', 'circuit'];
+/* Four sets would need four ellipses, so the Venn caps out at three. */
+const maxVars = (m = S.mode) => (m === 'sets' ? 3 : 4);
+
 function setExpr(expr, letters) {
   if (letters) S.letters = letters;
   S.lines = [{ expr, rule: null, sel: null }];
@@ -52,7 +63,7 @@ function minimalFor(m) {
 const txt = (s) => document.createTextNode(s);
 
 function nodeDom(n, path, parentKind) {
-  const g = GLYPH[S.mode];
+  const g = GLYPH[notn()];
   const sp = el('span', { class: 'nd', data: { path: JSON.stringify(path) } });
   const paren = needsParens(n, parentKind);
   if (paren) sp.appendChild(txt('('));
@@ -187,10 +198,40 @@ function wireSelection(host, expr) {
 
 /* ---- viewer ------------------------------------------------------- */
 
+/* Hovering a truth-table row retraces the circuit, and that must not go
+   through render(). Rebuilding the table under the cursor destroys the
+   element the pointer is sitting in, so the mouseleave that clears the
+   trace never arrives and the circuit stays stuck on the last row. Hold
+   handles to the live panes instead and repaint only what changed. */
+let ttHost = null, circuitBody = null, circuitHead = null, circuitCap = null;
+
+function setHoverRow(r) {
+  if (S.hoverRow === r) return;
+  S.hoverRow = r;
+  if (ttHost) TT.markRow(ttHost, r);
+  drawCircuit();
+}
+
+function drawCircuit() {
+  if (!circuitBody) return;
+  const row = S.hoverRow;
+  clear(circuitBody);
+  Circuit.render(circuitBody,
+    { expr: cur(), nv: S.nv, letters: S.letters, row });
+  circuitHead.textContent = 'Circuit' + (row == null ? ''
+    : ` — row ${row.toString(2).padStart(S.nv, '0')}`);
+  circuitCap.textContent = row == null
+    ? 'hover a truth-table row to trace the wires'
+    : 'values shown on every wire';
+}
+
 function renderViewer() {
   const host = document.getElementById('viewer');
   clear(host);
+  ttHost = circuitBody = circuitHead = circuitCap = null;
   const expr = cur();
+  // A row index outlives the table it came from when nv shrinks.
+  if (S.hoverRow != null && S.hoverRow >= (1 << S.nv)) S.hoverRow = null;
   if (!expr) return renderEmptyHint(host);
   const m = curMask();
   const selNode = S.sel ? focus(expr, S.sel) : null;
@@ -201,48 +242,49 @@ function renderViewer() {
     pane.appendChild(el('h2', { text: 'Venn diagram' }));
     const body = el('div', { class: 'panebody' });
     const cap = el('div', { class: 'caption' });
+    const idle = () => (selMask != null
+      ? 'green fill: the selection · blue: the whole line'
+      : 'click a region to shade it');
     Venn.render(body, {
-      nv: S.nv, on: m, sel: selMask, letters: S.letters, mode: S.mode,
+      nv: S.nv, on: m, sel: selMask, letters: S.letters, mode: notn(),
       onToggle: (r) => toggleRegion(r),
       onHover: (r) => {
-        cap.textContent = r == null
-          ? (selMask != null
-              ? 'darker fill: the selection · lighter: the whole line'
-              : 'click a region to shade it')
-          : Venn.regionName(r, S.nv, S.letters, S.mode);
+        cap.textContent = r == null ? idle()
+          : Venn.regionName(r, S.nv, S.letters, notn());
       },
     });
-    cap.textContent = selMask != null
-      ? 'darker fill: the selection · lighter: the whole line'
-      : 'click a region to shade it';
+    cap.textContent = idle();
     pane.appendChild(body);
     pane.appendChild(cap);
     host.appendChild(pane);
     return;
   }
 
+  /* Logic shows the table alone; circuit shows the table and the
+     circuit it drives, side by side. */
   const p1 = el('div', { class: 'pane tt-pane' },
     [el('h2', { text: 'Truth table' })]);
   const b1 = el('div', { class: 'panebody' });
+  ttHost = b1;
   TT.render(b1, {
-    expr, nv: S.nv, letters: S.letters, mode: S.mode, mask: m,
+    expr, nv: S.nv, letters: S.letters, mode: notn(), mask: m,
     selNode, showWork: S.showWork, hoverRow: S.hoverRow,
     onToggle: (r) => toggleRegion(r),
-    onHoverRow: (r) => { S.hoverRow = r; renderViewer(); },
+    onHoverRow: setHoverRow,
   });
   p1.appendChild(b1);
-
-  const p2 = el('div', { class: 'pane' }, [el('h2', {
-    text: 'Circuit' + (S.hoverRow != null ? ` — row ${S.hoverRow
-      .toString(2).padStart(S.nv, '0')}` : '') })]);
-  const b2 = el('div', { class: 'panebody' });
-  Circuit.render(b2, { expr, nv: S.nv, letters: S.letters, row: S.hoverRow });
-  p2.appendChild(b2);
-  p2.appendChild(el('div', { class: 'caption',
-    text: S.hoverRow == null ? 'hover a truth-table row to trace the wires'
-                             : 'values shown on every wire' }));
+  p1.appendChild(el('div', { class: 'caption',
+    text: 'click a value in the last column to flip that row' }));
   host.appendChild(p1);
+
+  if (S.mode !== 'circuit') return;
+
+  circuitHead = el('h2', {});
+  circuitCap = el('div', { class: 'caption' });
+  circuitBody = el('div', { class: 'panebody' });
+  const p2 = el('div', { class: 'pane' }, [circuitHead, circuitBody, circuitCap]);
   host.appendChild(p2);
+  drawCircuit();
 }
 
 function renderEmptyHint(host) {
@@ -252,15 +294,17 @@ function renderEmptyHint(host) {
   const body = el('div', { class: 'panebody' });
   if (S.mode === 'sets') {
     Venn.render(body, { nv: S.nv, on: 0, sel: null, letters: S.letters,
-      mode: S.mode, onToggle: (r) => toggleRegion(r) });
+      mode: notn(), onToggle: (r) => toggleRegion(r) });
   } else {
     TT.render(body, { expr: cn(false), nv: S.nv, letters: S.letters,
-      mode: S.mode, mask: 0, showWork: false,
+      mode: notn(), mask: 0, showWork: false,
       onToggle: (r) => toggleRegion(r) });
   }
   pane.appendChild(body);
   pane.appendChild(el('div', { class: 'caption',
-    text: 'click a region to build an expression, or pick an example' }));
+    text: S.mode === 'sets'
+      ? 'click a region to build an expression, or pick an example'
+      : 'click a row to build an expression, or pick an example' }));
   host.appendChild(pane);
 }
 
@@ -359,7 +403,7 @@ function doHint(level) {
   if (!p) return;
   if (p.done) { S.note = ''; render(); return; }
   if (!p.ok) {
-    S.note = `minimal form is ${toText(p.t.node, S.mode, S.letters)}` +
+    S.note = `minimal form is ${toText(p.t.node, notn(), S.letters)}` +
              ' (no derivation found)';
     render(); return;
   }
@@ -394,7 +438,7 @@ function runAll() {
   }
   const p = plan();
   S.note = p && !p.done && !p.ok
-    ? `minimal form is ${toText(p.t.node, S.mode, S.letters)}` +
+    ? `minimal form is ${toText(p.t.node, notn(), S.letters)}` +
       ' (no derivation found)'
     : '';
   S.sel = null; S.hint = 0;
@@ -424,15 +468,15 @@ function showLaw(group) {
   const side = (e, i) => {
     const box = el('div', { class: 'side' });
     box.appendChild(el('div', { class: 't',
-      text: toText(e, S.mode, S.letters) }));
+      text: toText(e, notn(), S.letters) }));
     if (S.mode === 'sets') {
       const h = el('div', { class: 'minivenn' });
       Venn.render(h, { nv, on: mask(e, nv), sel: null, letters: S.letters,
-        mode: S.mode, idp: `d${i}` });
+        mode: notn(), idp: `d${i}` });
       box.appendChild(h);
     } else {
       const h = el('div');
-      TT.render(h, { expr: e, nv, letters: S.letters, mode: S.mode,
+      TT.render(h, { expr: e, nv, letters: S.letters, mode: notn(),
         mask: mask(e, nv), showWork: false });
       box.appendChild(h);
     }
@@ -441,7 +485,7 @@ function showLaw(group) {
   const same = mask(L, nv) === mask(R, nv);
   const body = group === 'Associative'
     ? el('p', { text: 'Already built into how chains are written here. ' +
-        'That A ' + GLYPH[S.mode].or + ' B ' + GLYPH[S.mode].or +
+        'That A ' + GLYPH[notn()].or + ' B ' + GLYPH[notn()].or +
         ' C needs no parentheses is this law — so there is nothing to ' +
         'apply, and no step to add.' })
     : el('div', { class: 'lawgrid' }, [
@@ -498,9 +542,9 @@ function showExamples() {
 function load(src, mode) {
   const { expr, letters } = parse(src);
   if (mode) S.mode = mode;
-  S.nv = Math.max(2, Math.min(4, letters.length));
+  S.nv = Math.max(2, Math.min(maxVars(), letters.length));
   setExpr(expr, letters);
-  document.getElementById('src').value = toText(expr, S.mode, S.letters);
+  document.getElementById('src').value = toText(expr, notn(), S.letters);
   render();
 }
 
@@ -537,7 +581,7 @@ function toUrl() {
 }
 function fromUrl() {
   const p = new URLSearchParams(location.search);
-  if (p.get('mode') === 'logic' || p.get('mode') === 'sets') S.mode = p.get('mode');
+  if (MODES.includes(p.get('mode'))) S.mode = p.get('mode');
   const n = +p.get('n');
   if (n >= 2 && n <= 4) S.nv = n;
   const e = p.get('e');
@@ -560,9 +604,9 @@ function render() {
   for (const n of [2, 3, 4]) {
     vp.appendChild(el('button', {
       text: String(n), 'aria-selected': String(n === S.nv),
-      disabled: n === 4 && S.mode === 'sets',
-      title: n === 4 && S.mode === 'sets'
-        ? 'four sets would need four ellipses — logic mode only' : '',
+      disabled: n > maxVars(),
+      title: n > maxVars()
+        ? 'four sets would need four ellipses — logic and circuit only' : '',
       onclick: () => { S.nv = n; if (cur()) reseed(); render(); },
     }));
   }
@@ -625,9 +669,9 @@ function boot() {
   for (const b of document.querySelectorAll('#modeToggle button')) {
     b.onclick = () => {
       S.mode = b.dataset.mode;
-      if (S.mode === 'sets' && S.nv > 3) { S.nv = 3; reseed(); }
+      if (S.nv > maxVars()) { S.nv = maxVars(); reseed(); }
       const inp = document.getElementById('src');
-      if (cur()) inp.value = toText(S.lines[0].expr, S.mode, S.letters);
+      if (cur()) inp.value = toText(S.lines[0].expr, notn(), S.letters);
       render();
     };
   }
@@ -656,8 +700,7 @@ function boot() {
     try {
       const { expr, letters } = parse(v);
       err.textContent = '';
-      S.nv = Math.max(S.nv, Math.min(4, letters.length));
-      if (S.mode === 'sets' && S.nv > 3) S.nv = 3;
+      S.nv = Math.max(S.nv, Math.min(maxVars(), letters.length));
       setExpr(expr, letters);
       render();
     } catch (e) {
