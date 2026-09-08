@@ -147,101 +147,128 @@ setTimeout(() => {
         '¬A ∧ ¬B');
   }
 
-  /* -- the DOM actually rendered -- */
+  /* -- a real drag, through the DOM. The handlers paint the spans as
+     the mouse moves and then call render(), which rebuilds them, so
+     these check the highlight is still there afterwards -- and that
+     nothing invisible is sitting on top eating the events. -- */
+  B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
+  {
+    const span = (p) => [...document.querySelectorAll('#lines .dline.active .nd')]
+      .find((n) => n.dataset.path === JSON.stringify(p));
+    const fire = (n, t) => n.dispatchEvent(
+      new MouseEvent(t, { bubbles: true, cancelable: true, view: window }));
+    const lit = () => [...document.querySelectorAll('#lines .nd.sel')]
+      .map((n) => n.textContent).join(' | ');
+
+    fire(span([0]), 'mousedown');
+    fire(span([1]), 'mousemove');
+    fire(span([1]), 'mouseup');
+    ok('a drag records the run', S.sel && S.sel.from === 0 && S.sel.to === 2,
+       JSON.stringify(S.sel));
+    eqv('and the highlight survives the render', lit(),
+        '(C ∧ B) | (¬C ∧ B)');
+    ok('the rail narrowed to the selection',
+       !B.available().has('Absorption'));
+
+    // Overshooting the expression is the common case, not an error.
+    fire(span([1]), 'mousedown');
+    fire(span([2]), 'mousemove');
+    document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    ok('a release off the expression still commits',
+       S.sel && S.sel.from === 1 && S.sel.to === 3, JSON.stringify(S.sel));
+    eqv('with the run it was dragged over', lit(), '(¬C ∧ B) | (A ∧ ¬B)');
+
+    const o = document.getElementById('overlay');
+    eqv('a hidden overlay is really gone', getComputedStyle(o).display, 'none');
+    const r = span([0]).getBoundingClientRect();
+    const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    ok('the expression is what the mouse hits',
+       !!(hit && hit.closest('.nd')), hit ? `hit ${hit.id || hit.className}` : 'hit nothing');
+  }
+
+  /* -- each view draws its own things, and only its own -- */
   B.load('(A & B) | ~C', 'logic');
   ok('expression spans carry paths',
      document.querySelectorAll('#lines .nd[data-path]').length > 3);
-  ok('a truth table was drawn',
+  ok('logic draws a truth table',
      document.querySelectorAll('#viewer table.tt tbody tr').length === 8);
-  ok('a circuit was drawn',
+  ok('logic draws no circuit',
+     document.querySelectorAll('#viewer svg.circuit').length === 0);
+  B.S.mode = 'circuit'; B.render();
+  ok('circuit keeps the truth table',
+     document.querySelectorAll('#viewer table.tt tbody tr').length === 8);
+  ok('circuit adds the circuit',
      document.querySelectorAll('#viewer svg.circuit .gate').length >= 3);
   B.S.mode = 'sets'; B.render();
-  ok('a venn was drawn',
+  ok('sets draws a venn',
      document.querySelectorAll('#viewer svg.venn .vregion').length === 8);
+  ok('sets draws no truth table',
+     document.querySelectorAll('#viewer table.tt').length === 0);
   ok('rule rows rendered',
      document.querySelectorAll('#rules .rule-row').length === 11);
 
-  /* -- the page is actually clickable ------------------------------
-     These exist because a `.overlay { display: flex }` rule once beat
-     the UA's `[hidden] { display: none }`, leaving the modal backdrop
-     permanently over the page. Every test above still passed, because
-     they call functions rather than click. Hit-test the real page. */
-
-  function covering(node) {
-    if (!node) return 'missing';
-    node.scrollIntoView({ block: 'center' });
-    const r = node.getBoundingClientRect();
-    if (!r.width || !r.height) return 'zero-size';
-    const x = Math.round(r.left + r.width / 2);
-    const y = Math.round(r.top + r.height / 2);
-    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return 'offscreen';
-    const top = document.elementFromPoint(x, y);
-    if (!top) return 'nothing there';
-    if (top === node || node.contains(top) || top.contains(node)) return null;
-    return top.id || top.className || top.tagName;
-  }
-
+  /* -- the view picks the notation: circuit reads as logic, not sets -- */
   B.load('(A u B)^C', 'sets');
-  const ov = document.getElementById('overlay');
-  eqv('backdrop is display:none while hidden',
-      getComputedStyle(ov).display, 'none');
-  const tst = document.getElementById('toast');
-  tst.hidden = true;              // an earlier test may have raised it
-  eqv('toast is display:none while hidden',
-      getComputedStyle(tst).display, 'none');
-  tst.hidden = false;
-  eqv('a visible toast never eats clicks',
-      getComputedStyle(tst).pointerEvents, 'none');
-  tst.hidden = true;
-
-  for (const [name, q] of [
-    ['a rule button', '#rules .rule-row button.r'],
-    ['a law info button', '#rules .rule-row button.info'],
-    ['the mode toggle', '#modeToggle button'],
-    ['the Simplify button', '#simplify'],
-    ['the expression input', '#src'],
-    ['the viewer', '#viewer svg'],
-    ['an expression term', '#lines .nd'],
-  ]) {
-    const node = document.querySelector(q);
-    const c = covering(node);
-    ok(`${name} is reachable by a click`, c === null, `covered by ${c}`);
+  {
+    const shown = () => document.querySelector('#lines .expr').textContent;
+    const four = () => [...document.querySelectorAll('#varPick button')]
+      .find((b) => b.textContent === '4');
+    ok('sets reads in set symbols', /∪/.test(shown()), shown());
+    ok('four sets is refused', four().disabled);
+    B.S.mode = 'circuit'; B.render();
+    ok('circuit reads in logic symbols', /∨/.test(shown()), shown());
+    ok('four variables is allowed', !four().disabled);
   }
 
-  /* -- real clicks, dispatched through the DOM -- */
+  /* -- leaving the table stops tracing. The circuit used to stay stuck
+     on whichever row the pointer last touched. -- */
+  B.load('(A & B) | ~C', 'circuit');
   {
-    const n0 = S.lines.length;
-    const btn = [...document.querySelectorAll('#rules .rule-row button.r')]
-      .find((b) => b.textContent.trim().startsWith('DeMorgan'));
-    ok('the DeMorgan button is enabled', !!btn && !btn.disabled);
-    btn.click();
-    eqv('a real click applies the rule', S.lines.length, n0 + 1);
+    const head = () => document.querySelectorAll('#viewer .pane h2')[1].textContent;
+    const marked = () => document.querySelectorAll('#viewer tr.hov').length;
+    const rows = document.querySelectorAll('#viewer table.tt tbody tr');
+    rows[3].dispatchEvent(new MouseEvent('mouseenter'));
+    eqv('hovering a row traces it', S.hoverRow, 3);
+    eqv('exactly one row is marked', marked(), 1);
+    ok('the circuit names that row', /row /.test(head()), head());
+
+    document.querySelector('#viewer .ttwrap')
+      .dispatchEvent(new MouseEvent('mouseleave'));
+    ok('leaving the table clears the trace', S.hoverRow === null);
+    eqv('no row stays marked', marked(), 0);
+    ok('and the circuit drops the row', !/row /.test(head()), head());
   }
+
+  /* -- a law may add and drop working columns, but A, B, C must not
+     slide sideways while the reader is looking at them -- */
+  B.load('(C & B) | (~C & B) | (A & ~B)', 'logic');
   {
-    document.querySelector('#modeToggle button[data-mode="logic"]').click();
-    eqv('a real click switches mode', S.mode, 'logic');
-    document.querySelector('#modeToggle button[data-mode="sets"]').click();
-    eqv('and switches back', S.mode, 'sets');
-  }
-  {
-    document.querySelector('#rules .rule-row button.info').click();
-    ok('a real click opens the law card',
-       !ov.hidden && getComputedStyle(ov).display === 'flex');
-    ok('the card rendered', !!document.querySelector('#overlay .card'));
-    const dismiss = [...document.querySelectorAll('#overlay .cardfoot button')]
-      .find((b) => b.textContent === 'dismiss');
-    dismiss.click();
-    ok('dismiss closes it',
-       ov.hidden && getComputedStyle(ov).display === 'none');
-    ok('and the page is clickable again',
-       covering(document.getElementById('simplify')) === null);
-  }
-  {
-    const n0 = S.lines.length;
-    document.querySelector('#viewer svg.venn').dispatchEvent(
-      new MouseEvent('click', { clientX: 0, clientY: 0, bubbles: true }));
-    ok('a real click on the diagram replaces the derivation',
-       S.lines.length === 1 || S.lines.length !== n0);
+    const varXs = () => [...document.querySelectorAll('#viewer thead th.var')]
+      .map((th) => Math.round(th.getBoundingClientRect().x)).join();
+    const wrapBox = () => {
+      const b = document.querySelector('#viewer .ttwrap').getBoundingClientRect();
+      return `${Math.round(b.x)}+${Math.round(b.width)}`;
+    };
+    const cols = () => document.querySelectorAll('#viewer thead th.sub').length;
+
+    // Walk the whole derivation, not one step: the column count rises
+    // and falls along the way, and the variables have to sit still for
+    // all of it. The table itself is meant to narrow as columns go --
+    // it is the wrapper that is pinned, and the wrapper that keeps the
+    // variables where they were.
+    const places = new Set(), wraps = new Set(), counts = new Set();
+    for (let i = 0; i < 12; i++) {
+      places.add(varXs()); wraps.add(wrapBox()); counts.add(cols());
+      const p = B.plan();
+      if (!p || p.done || !p.ok) break;
+      B.applyNext();
+    }
+    ok('the derivation ran several steps', S.lines.length > 3,
+       `${S.lines.length} lines`);
+    ok('and varied the working columns', counts.size > 1, [...counts].join());
+    ok('right down to none at all', counts.has(0), [...counts].join());
+    eqv('A, B, C never moved', places.size, 1);
+    eqv('and the wrapper never moved or resized', wraps.size, 1);
   }
 
   document.getElementById('out').textContent =

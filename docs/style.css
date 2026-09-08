@@ -1,153 +1,256 @@
 /* One place for every colour. Fills are a single hue at varying
    opacity plus an outline, so shading is never the only channel. */
 :root {
-  --bg: #fbfaf8;
+  --bg: #eef1f5;
   --panel: #ffffff;
-  --ink: #1d1f24;
-  --muted: #6b7280;
-  --line: #d8d4cd;
-  --accent: #1f6feb;           /* selection / primary fill */
-  --accent-soft: #1f6feb26;
-  --accent-mid: #1f6feb59;
-  --warm: #b45309;             /* the whole line, behind a selection */
-  --on: #15803d;               /* a 1 on a wire */
+  --ink: #24303f;
+  --muted: #6b7a90;
+  --line: #dfe5ec;
+  /* Two colours, two meanings, on every surface. Blue is "where this
+     expression is true" -- shaded Venn regions, 1s in the table, live
+     wires. Green is "the part you selected", and nothing else. */
+  --accent: #2d70b3;           /* the whole line */
+  --accent-soft: #2d70b31f;
+  --accent-mid: #2d70b34d;
+  --sel: #12a05e;              /* the selection */
+  --sel-soft: #12a05e1f;
+  --sel-mid: #12a05e4d;
+  --on: var(--accent);         /* a 1 on a wire: true, so blue */
   --off: #9ca3af;
   --focus: #f59e0b;
+  --on-accent: #fff;           /* text on an accent fill */
+  --panel-2: #f4f7fa;          /* table heads and other raised chrome */
+  --active: #eaf2fb;           /* the derivation line being worked on */
+  --trace: #fff6e0;            /* the truth-table row being traced */
+  --trace-on: #ffe6ad;
+  --hintbg: #ffefc4;
+  --dim: #aab6c6;              /* disabled text */
+  --ink-soft: #55677f;         /* diagram strokes */
+  --err: #b91c1c;
+  --scrim: #24303f66;
+  --shadow: 0 18px 50px #24303f26;
+  --card: 0 1px 3px #24303f1a, 0 8px 24px #24303f0d;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", sans-serif;
+  --app-max: 1600px;           /* wider than this and the app centres */
+
+  /* Derivation steps, cycled one per line. Set1-ish -- bright and a
+     little pastel -- but deliberately missing Set1's green and blue:
+     those already mean "the selection" and "true" everywhere else, and
+     a step colour that read as either would undo that. */
+  --step-1: #e0301e;  --step-1-soft: #e0301e26;   /* red */
+  --step-2: #ef7d00;  --step-2-soft: #ef7d0026;   /* orange */
+  --step-3: #9c4ba8;  --step-3-soft: #9c4ba826;   /* purple */
+  --step-4: #e8639f;  --step-4-soft: #e8639f26;   /* pink */
+  --step-5: #00a2ad;  --step-5-soft: #00a2ad26;   /* teal */
+  --step-6: #a3691f;  --step-6-soft: #a3691f26;   /* brown */
+  --step-7: #b59000;  --step-7-soft: #b5900026;   /* mustard */
 }
 * { box-sizing: border-box; }
+/* The `hidden` attribute is only a UA `display: none`, so any rule here
+   that sets `display` silently outranks it -- an "invisible" .overlay
+   then still covers the page and eats every click. Restate it. */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-        Roboto, "Helvetica Neue", sans-serif;
+  font: 15.5px/1.45 var(--font);
+  display: flex; flex-direction: column;
 }
+
+/* ---- header ---- */
+/* Full-bleed white, but its contents line up with the capped main
+   below rather than running off to the window edge. */
+.topbar { background: var(--panel); box-shadow: 0 1px 0 var(--line); }
 header {
   display: flex; align-items: center; gap: 18px;
-  padding: 10px 18px; border-bottom: 1px solid var(--line);
-  background: var(--panel); flex-wrap: wrap;
+  padding: 14px 22px; flex-wrap: wrap;
+  width: 100%; max-width: var(--app-max); margin-inline: auto;
 }
-h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .2px; }
-header .modes { display: flex; margin-left: auto; }
+h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+header .modes { margin-left: auto; }
 header #examplesBtn { flex: none; }
-.modes button, .seg button {
-  border: 1px solid var(--line); background: var(--panel);
-  padding: 5px 14px; cursor: pointer; font: inherit; font-size: 13px;
-  letter-spacing: .08em;
+
+/* Pill toggles. */
+.modes, .seg {
+  display: inline-flex; background: var(--panel-2);
+  border-radius: 999px; padding: 3px; gap: 2px;
 }
-.modes button:first-child { border-radius: 6px 0 0 6px; }
-.modes button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.modes button, .seg button {
+  border: 0; background: none; cursor: pointer; font: inherit;
+  font-size: 13px; padding: 8px 18px; border-radius: 999px;
+  font-weight: 600; letter-spacing: .04em; color: var(--muted);
+}
+.seg button { padding: 6px 13px; }
 .modes button[aria-selected=true], .seg button[aria-selected=true] {
-  background: var(--accent); color: #fff; border-color: var(--accent);
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 2px 6px #2d70b340;
+}
+.modes button:disabled, .seg button:disabled {
+  color: var(--dim); cursor: default;
 }
 .vars { font-size: 13px; color: var(--muted); display: flex;
         align-items: center; gap: 8px; }
-.seg { display: inline-flex; }
-.seg button { padding: 5px 10px; }
-.seg button:not(:first-child) { border-left: 0; }
-.seg button:first-child { border-radius: 6px 0 0 6px; }
-.seg button:last-child { border-radius: 0 6px 6px 0; }
 
+/* ---- layout ---- */
 main {
-  display: grid; height: calc(100vh - 53px);
+  display: grid; gap: 14px; padding: 14px;
+  flex: 1; min-height: 0;
+  width: 100%; max-width: var(--app-max); margin-inline: auto;
   grid-template-columns: 1fr 250px;
   grid-template-rows: minmax(300px, 58%) minmax(190px, 1fr);
   grid-template-areas: "viewer algebra" "expr algebra";
 }
-.viewer { grid-area: viewer; border-bottom: 1px solid var(--line);
-          display: flex; min-height: 0; background: var(--panel); }
-.expression { grid-area: expr; padding: 14px 18px; overflow: auto;
+/* Each region is a card: no borders, just a lift off the field. */
+.viewer, .expression, .algebra {
+  background: var(--panel); border: 0; border-radius: var(--radius-lg);
+  box-shadow: var(--card); min-height: 0;
+}
+.viewer { grid-area: viewer; display: flex; }
+.expression { grid-area: expr; padding: 18px 22px; overflow: auto;
               display: flex; flex-direction: column; }
-.algebra { grid-area: algebra; border-left: 1px solid var(--line);
-           background: var(--panel); overflow: auto; padding: 10px; }
+.algebra { grid-area: algebra; overflow: auto; padding: 14px; }
 
 /* ---- viewer ---- */
 .pane { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .pane + .pane { border-left: 1px solid var(--line); }
 .pane h2 {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); margin: 10px 14px 4px; font-weight: 600;
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--muted); margin: 14px 18px 6px; font-weight: 600;
 }
 .panebody { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px;
-             display: flex; align-items: center; justify-content: center; }
-.pane.tt-pane .panebody { align-items: flex-start; }
-.caption { font-size: 12px; color: var(--muted); margin: 2px 14px 8px; }
+             display: flex; align-items: center; justify-content: center;
+             /* Reserve the scrollbar gutter always. Header wrapping
+                changes the table's height, and a scrollbar appearing
+                narrows the box by ~15px, which slides a centred table
+                sideways -- the exact jump the fixed columns exist to
+                prevent. */
+             scrollbar-gutter: stable; }
+/* Block, not flex. A centred flex child that outgrows its container
+   overflows equally in both directions and the left of it becomes
+   unreachable -- which silently ate the A column. Under block layout
+   `margin: 0 auto` collapses to 0 when there is no room, so a wide
+   table starts at the left edge and scrolls honestly. */
+.pane.tt-pane .panebody { display: block; }
+/* The table needs more of the row than the circuit does. */
+.pane.tt-pane { flex: 1.25; }
+.caption { font-size: 12.5px; color: var(--muted); margin: 4px 18px 12px; }
 
 svg.venn { display: block; margin: 0 auto; cursor: pointer;
            height: 100%; max-height: 330px; width: auto; }
 .minivenn svg.venn { height: 190px; }
 .vregion { fill: transparent; }
 .vregion.on { fill: var(--accent); fill-opacity: .30; }
-.vregion.sel { fill: var(--accent); fill-opacity: .55; }
+.vregion.sel { fill: var(--sel); fill-opacity: .58; }
 .vregion.hov { fill-opacity: .68; }
-.vcircle { fill: none; stroke: #5b6270; stroke-width: 1.6; }
+.vcircle { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; }
 .vlabel { font-size: 15px; font-weight: 650; fill: var(--ink); }
 .vframe { fill: none; stroke: var(--line); }
 
-table.tt { border-collapse: collapse; font-variant-numeric: tabular-nums;
-           font-size: 13px; margin: 2px 0 8px; }
+/* ---- truth table ---- */
+/* table-layout: fixed makes the <col> widths binding, which is what
+   keeps A, B, C from sliding when a law adds or drops a working
+   column. See the header comment in truthtable.js. */
+/* Fixed width and centred; the table sits at its left edge. */
+.ttwrap { margin: 0 auto; }
+table.tt { border-collapse: collapse; table-layout: fixed;
+           font-variant-numeric: tabular-nums;
+           font-size: 16px; margin: 0; }
 table.tt th, table.tt td {
-  border: 1px solid var(--line); padding: 2px 7px; text-align: center;
+  border: 1px solid var(--line); padding: 7px 9px; text-align: center;
 }
-table.tt th { font-weight: 600; background: #f4f2ee; white-space: nowrap;
-              font-size: 12px; }
+/* Headers wrap rather than ellipsise. A truncated header is a column
+   whose expression you cannot read, which is the only reason it is
+   there. */
+table.tt th {
+  font-weight: 700; background: var(--panel-2); font-size: 13.5px;
+  vertical-align: bottom; white-space: normal; overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+table.tt td { white-space: nowrap; }
+table.tt th.var { font-size: 16px; }
 table.tt th.sub { color: var(--muted); font-weight: 500; }
-table.tt th.selcol { background: var(--accent-soft); color: var(--accent); }
+table.tt th.selcol { background: var(--sel-soft); color: var(--sel); }
 table.tt td.out { cursor: pointer; font-weight: 650; }
 table.tt td.one { background: var(--accent-soft); }
-table.tt tr.hov td { background: #fff6e0; }
-table.tt tr.hov td.one { background: #ffe9b8; }
+table.tt tr.hov td { background: var(--trace); }
+table.tt tr.hov td.one { background: var(--trace-on); }
 table.tt td.v { color: var(--muted); }
 
+/* ---- circuit ---- */
 svg.circuit { display: block; width: 100%; height: auto;
               max-height: 100%; }
-.gate { fill: #fff; stroke: #444; stroke-width: 1.5; }
-.wire { stroke: #6b7280; stroke-width: 1.5; fill: none; }
+.gate { fill: var(--panel); stroke: var(--ink-soft); stroke-width: 1.5; }
+.wire { stroke: var(--off); stroke-width: 1.5; fill: none; }
 .wire.on { stroke: var(--on); stroke-width: 2.4; }
-.wire.sel { stroke: var(--accent); stroke-width: 2.6; }
-.wdot { fill: #6b7280; }
+.wdot { fill: var(--off); }
 .wval { font-size: 10px; font-weight: 700; fill: var(--muted); }
 .wval.on { fill: var(--on); }
 .ilabel { font-size: 13px; font-weight: 650; fill: var(--ink); }
+/* The selected subexpression. The halo is drawn *under* the wire so the
+   wire keeps saying whether it carries a 0 or a 1. */
+.wire-hl { stroke: var(--sel); stroke-width: 7; fill: none; opacity: .3;
+           stroke-linecap: round; stroke-linejoin: round; }
+.gate.sel { stroke: var(--sel); stroke-width: 2.6; }
 
 /* ---- expression ---- */
 .lines { flex: 1; font-size: 19px; line-height: 2.0; }
-.dline { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.dline { display: flex; align-items: baseline; gap: 10px;
+         white-space: nowrap; padding: 4px 10px;
+         border-radius: var(--radius); }
 .dline .eqs { width: 1.2em; color: var(--muted); text-align: right;
               flex: none; font-size: 16px; }
 .dline .rule { margin-left: 18px; font-size: 12px; color: var(--muted);
                letter-spacing: .03em; }
 .dline:not(.active) .expr { cursor: default; }
+.dline.active { background: var(--active); }
 .dline.active .rule { color: var(--accent); }
 .expr { cursor: pointer; user-select: none; }
-.expr .nd { border-radius: 3px; padding: 0 1px; }
-.expr .nd.sel { background: var(--accent-mid); box-shadow: 0 0 0 1px var(--accent); }
+.expr .nd { border-radius: 5px; padding: 1px 2px; }
 .expr .nd.hov { background: var(--accent-soft); }
-.expr .span { background: #fff2cc; border-radius: 3px; }
-.dline { padding: 0 6px; border-radius: 5px; }
-.dline.active { background: #f3f6fd; }
+
+/* A step's colour appears three times: on the rule that was used, on
+   what it produced, and on what it was applied to on the line above.
+   Fill and outline are separate channels on purpose -- one line's
+   result is usually the next step's input, so the same span often
+   carries both at once. */
+.dline .rule.step {
+  background: var(--step-soft); color: var(--step); font-weight: 650;
+  padding: 2px 9px; border-radius: 999px; margin-left: 14px;
+}
+.expr .nd.after { background: var(--step-soft); }
+.expr .nd.before { outline: 2px dashed var(--step); outline-offset: 1px; }
+/* Last, so a live selection always wins the background. */
+.expr .nd.sel { background: var(--sel-mid); box-shadow: 0 0 0 1px var(--sel); }
+
 .entry { display: flex; align-items: center; gap: 10px; margin-top: 12px;
          padding-top: 10px; border-top: 1px dashed var(--line); }
 .entry label { font-size: 12px; color: var(--muted); }
 .entry input {
-  flex: 1; font: inherit; font-size: 15px; padding: 6px 9px;
-  border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  flex: 1; font: inherit; font-size: 15px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: inherit;
 }
-.err { color: #b91c1c; font-size: 12px; }
+.err { color: var(--err); font-size: 12px; }
 
 /* ---- algebra ---- */
 .rule-row { display: flex; align-items: center; gap: 6px; }
 .rule-row > button.r {
-  flex: 1; text-align: left; font: inherit; font-size: 13px;
-  padding: 5px 8px; border: 1px solid transparent; border-radius: 6px;
-  background: transparent; cursor: pointer; color: var(--ink);
+  flex: 1; text-align: left; font: inherit; font-size: 13.5px;
+  padding: 9px 12px; border: 1px solid transparent;
+  border-radius: var(--radius); background: transparent;
+  cursor: pointer; color: var(--ink); font-weight: 550;
 }
 .rule-row > button.r:hover:not(:disabled) { background: var(--accent-soft); }
-.rule-row > button.r:disabled { color: #b3b0aa; cursor: default; }
-.rule-row > button.r.hint { background: #fff0c9; border-color: var(--focus); }
+.rule-row > button.r:disabled { color: var(--dim); cursor: default; }
+.rule-row > button.r.hint { background: var(--hintbg);
+                            border-color: var(--focus); }
 .rule-row > button.r .dir { color: var(--muted); font-size: 11px; }
 button.info {
-  border: 1px solid var(--line); background: #fff; border-radius: 50%;
-  width: 20px; height: 20px; line-height: 1; font-size: 11px;
+  border: 1px solid var(--line); background: var(--panel); border-radius: 50%;
+  width: 22px; height: 22px; line-height: 1; font-size: 11px;
   cursor: pointer; color: var(--muted); flex: none; padding: 0;
 }
 button.info:hover { border-color: var(--accent); color: var(--accent); }
@@ -155,30 +258,30 @@ button.info:hover { border-color: var(--accent); color: var(--accent); }
            padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .hintrow { display: flex; gap: 6px; }
 button.primary, button.ghost {
-  font: inherit; font-size: 13px; padding: 6px 10px; cursor: pointer;
-  border-radius: 6px; border: 1px solid var(--line); background: #fff;
+  font: inherit; font-size: 14px; padding: 10px 14px; cursor: pointer;
+  border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--panel); color: inherit; font-weight: 600;
 }
-button.primary { background: var(--accent); color: #fff;
-                 border-color: var(--accent); font-weight: 600; }
-button.primary:disabled { background: #e7e5e1; color: #9a978f;
-                          border-color: var(--line); font-weight: 400; }
+button.primary { background: var(--accent); color: var(--on-accent);
+                 border-color: var(--accent);
+                 box-shadow: 0 2px 8px #2d70b344; }
+button.primary:disabled { background: var(--panel-2); color: var(--dim);
+                          border-color: var(--line); font-weight: 400;
+                          box-shadow: none; }
 .hintrow button.ghost { flex: 1; }
-button.ghost:disabled { color: #b3b0aa; }
+button.ghost:disabled { color: var(--dim); }
 .note { font-size: 11.5px; color: var(--muted); min-height: 1em; }
 
 /* ---- overlay ---- */
-/* display:flex would beat the UA's [hidden]{display:none}, leaving the
-   backdrop permanently over the page and swallowing every click. */
 .overlay {
-  position: fixed; inset: 0; background: #1d1f2455;
+  position: fixed; inset: 0; background: var(--scrim);
   display: flex; align-items: center; justify-content: center; z-index: 20;
 }
-.overlay[hidden] { display: none; }
-.toast[hidden] { display: none; }
 .card {
-  background: var(--panel); border-radius: 10px; padding: 20px 24px;
+  background: var(--panel); border-radius: var(--radius-lg);
+  padding: 20px 24px;
   max-width: min(760px, 92vw); max-height: 88vh; overflow: auto;
-  box-shadow: 0 12px 40px #0003;
+  box-shadow: var(--shadow);
 }
 .card h3 { margin: 0 0 4px; font-size: 16px; }
 .card p { color: var(--muted); font-size: 13px; margin: 6px 0 14px; }
@@ -192,18 +295,17 @@ button.ghost:disabled { color: #b3b0aa; }
 .exlist { display: flex; flex-direction: column; gap: 2px; }
 .exlist button {
   text-align: left; font: inherit; font-size: 13.5px; padding: 8px 10px;
-  border: 1px solid transparent; border-radius: 6px; background: transparent;
-  cursor: pointer;
+  border: 1px solid transparent; border-radius: var(--radius);
+  background: transparent; cursor: pointer; color: inherit;
 }
 .exlist button:hover { background: var(--accent-soft); }
 .exlist .ex-e { font-size: 15px; }
 .exlist .ex-d { color: var(--muted); font-size: 12px; }
-/* pointer-events:none so a transient notice can never eat a click on
-   the input it happens to sit over. */
 .toast {
-  position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
-  background: #1d1f24; color: #fff; padding: 8px 14px; border-radius: 6px;
-  font-size: 13px; z-index: 30; pointer-events: none;
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--panel); padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px; z-index: 30;
 }
 @media (prefers-reduced-motion: no-preference) {
   .expr .nd, .vregion, .wire { transition: all .12s ease; }

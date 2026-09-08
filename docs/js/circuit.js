@@ -10,35 +10,69 @@
    part company. */
 
 import { svg, clear } from './dom.js';
-import { desugar } from './core.js';
 
-const GW = 34, GH = 13, COLW = 62, ROWH = 34, BUS0 = 46, BUSW = 11;
+/* Gap between the variable buses and the first gate column. Wide enough
+   that a constant's lead and its T/F label fit without running back
+   into the buses. */
+const GW = 34, GH = 13, COLW = 62, ROWH = 34, BUS0 = 46, BUSW = 11,
+      GAP = 34, CONSTW = 26;
 
 /* ---- graph ---- */
 
-function build(expr) {
+/* Desugars and binarises in one walk rather than calling core.desugar()
+   first, so that `sel` -- a set of nodes from the original tree -- can
+   be carried down by identity. core.desugar() rebuilds every interior
+   node, which would throw that identity away and leave nothing to
+   match the selection against. */
+function build(expr, sel) {
   const gates = [];
-  const varOcc = new Map();
-  const push = (type, inputs, node) =>
-    ({ kind: 'gate', id: gates.push({ type, inputs, node, id: gates.length }) - 1 });
+  const push = (type, inputs, node, inSel) =>
+    ({ kind: 'gate',
+       id: gates.push({ type, inputs, node, sel: inSel,
+                        id: gates.length }) - 1 });
 
-  function go(n) {
+  function go(n, inSel) {
+    const here = inSel || !!sel?.has(n);
     switch (n.k) {
-      case 'var': return { kind: 'var', i: n.i };
-      case 'const': return { kind: 'const', v: n.v };
-      case 'not': return push('not', [go(n.a)], n);
+      case 'var': return { kind: 'var', i: n.i, sel: here };
+      case 'const': return { kind: 'const', v: n.v, sel: here };
+      case 'not': return push('not', [go(n.a, here)], n, here);
+      // A − B is A ∧ ¬B.
+      case 'diff': return push('and',
+        [go(n.l, here), push('not', [go(n.r, here)], null, here)], n, here);
+      // A Δ B is (A ∧ ¬B) ∨ (B ∧ ¬A), so each side is drawn twice.
+      case 'sym': {
+        const a1 = push('and',
+          [go(n.l, here), push('not', [go(n.r, here)], null, here)], null, here);
+        const a2 = push('and',
+          [go(n.r, here), push('not', [go(n.l, here)], null, here)], null, here);
+        return push('or', [a1, a2], n, here);
+      }
       default: {
-        const rs = n.ts.map(go);
+        const rs = n.ts.map((t) => go(t, here));
         let acc = rs[0];
         for (let i = 1; i < rs.length; i++) {
-          acc = push(n.k, [acc, rs[i]], i === rs.length - 1 ? n : null);
+          acc = push(n.k, [acc, rs[i]],
+                     i === rs.length - 1 ? n : null, here);
         }
         return acc;
       }
     }
   }
-  const out = go(desugar(expr));
-  return { gates, out, varOcc };
+  const out = go(expr, false);
+  /* Two things in one id-ordered pass. Gate refs are plain {kind,id}
+     objects, so copy the gate's own flag onto them and the drawing code
+     can ask any ref whether it is selected. And a gate all of whose
+     inputs are selected computes exactly the selection even if the gate
+     itself is not in it -- which is what a term-range selection looks
+     like once the chain has been binarised. Inputs always have lower
+     ids than the gate they feed, so one pass settles it. */
+  for (const gt of gates) {
+    for (const r of gt.inputs) if (r.kind === 'gate') r.sel = gates[r.id].sel;
+    if (!gt.sel && gt.inputs.every((r) => r.sel)) gt.sel = true;
+  }
+  if (out.kind === 'gate') out.sel = gates[out.id].sel;
+  return { gates, out };
 }
 
 function layout(g, nv) {
@@ -56,13 +90,19 @@ function layout(g, nv) {
     const ys = gt.inputs.map(place);
     gt.y = ys.reduce((a, b) => a + b, 0) / ys.length;
     gt.d = depth(r);
-    gt.x = BUS0 + BUSW * nv + 16 + (gt.d - 1) * COLW;
+    gt.x = BUS0 + BUSW * nv + GAP + (gt.d - 1) * COLW;
     return gt.y;
   };
   place(g.out);
   const maxD = Math.max(1, ...g.gates.map((x) => x.d || 1));
-  const w = BUS0 + BUSW * nv + 16 + maxD * COLW + 40;
-  const h = Math.max(90, 26 + slot * ROWH + 14, 18 + nv * 16 + 26);
+  const w = BUS0 + BUSW * nv + GAP + maxD * COLW + 40;
+  /* Height comes from the lowest thing actually drawn, plus half a gate
+     body. Deriving it from the row count alone clipped whichever gate
+     sat on the bottom row: its body extends GH below its centre line,
+     and the viewBox stopped at the centre line. */
+  const lowest = Math.max(0, ...leaves.map((l) => l.y),
+                          ...g.gates.map((x) => x.y));
+  const h = Math.max(90, lowest + GH + 12, 18 + nv * 16 + 26);
   return { leaves, w, h, maxD };
 }
 
@@ -98,9 +138,9 @@ const notPath = (x, y) =>
   `M${x},${y - GH} L${x + GW * 0.66},${y} L${x},${y + GH} Z`;
 
 export function render(host, opts) {
-  const { expr, nv, letters, row } = opts;
+  const { expr, nv, letters, row, sel } = opts;
   clear(host);
-  const g = build(expr);
+  const g = build(expr, sel);
   const L = layout(g, nv);
   const vals = row == null ? null : values(g, row, nv);
 
@@ -155,15 +195,22 @@ export function render(host, opts) {
   for (const gt of g.gates) {
     gt.inputs.forEach((r, k) => {
       const ty = gt.type === 'not' ? gt.y : gt.y + (k === 0 ? -7 : 7);
-      const sx = r.kind === 'var' ? busX(r.i) : (outX(r) ?? busX(0));
+      // A constant is its own little source just left of the gate. It
+      // used to fall through to busX(0), which drew its lead along
+      // variable A's bus and read as if A fed the gate.
+      const sx = r.kind === 'var' ? busX(r.i)
+        : r.kind === 'const' ? gt.x - CONSTW
+        : outX(r);
       const sy = r.kind === 'gate' ? g.gates[r.id].y : ty;
       const mx = r.kind === 'gate' ? (sx + gt.x) / 2 : sx;
       const d = r.kind === 'gate'
         ? `M${sx},${sy} H${mx} V${ty} H${gt.x}`
         : `M${sx},${ty} H${gt.x}`;
+      if (r.sel) root.appendChild(svg('path', { class: 'wire-hl', d }));
       root.appendChild(svg('path', { class: wcls(r), d }));
       if (r.kind === 'const') {
-        root.appendChild(svg('text', { class: 'wval', x: sx - 12, y: ty + 4 },
+        root.appendChild(svg('text', {
+          class: 'ilabel', 'text-anchor': 'end', x: sx - 5, y: ty + 4.5 },
           [r.v ? 'T' : 'F']));
       }
     });
@@ -173,9 +220,10 @@ export function render(host, opts) {
   for (const gt of g.gates) {
     const p = gt.type === 'and' ? andPath(gt.x, gt.y)
       : gt.type === 'or' ? orPath(gt.x, gt.y) : notPath(gt.x, gt.y);
-    root.appendChild(svg('path', { class: 'gate', d: p }));
+    const gcls = 'gate' + (gt.sel ? ' sel' : '');
+    root.appendChild(svg('path', { class: gcls, d: p }));
     if (gt.type === 'not') {
-      root.appendChild(svg('circle', { class: 'gate',
+      root.appendChild(svg('circle', { class: gcls,
         cx: gt.x + GW * 0.66 + 4, cy: gt.y, r: 4 }));
     }
     if (vals) {
@@ -190,8 +238,9 @@ export function render(host, opts) {
 
   // The output lead.
   const ox = outX(g.out), oy = g.gates[g.out.id]?.y ?? 26;
-  root.appendChild(svg('path', { class: wcls(g.out),
-    d: `M${ox},${oy} H${ox + 26}` }));
+  const outD = `M${ox},${oy} H${ox + 26}`;
+  if (g.out.sel) root.appendChild(svg('path', { class: 'wire-hl', d: outD }));
+  root.appendChild(svg('path', { class: wcls(g.out), d: outD }));
   root.appendChild(svg('text', { class: 'ilabel', x: ox + 30, y: oy + 5 },
     ['Y']));
 

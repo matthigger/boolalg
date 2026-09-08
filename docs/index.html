@@ -7,17 +7,20 @@
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+<div class="topbar">
 <header>
   <h1>Boolean Algebra Explorer</h1>
-  <div class="modes" id="modeToggle" role="tablist" aria-label="notation">
+  <div class="modes" id="modeToggle" role="tablist" aria-label="view">
     <button data-mode="sets" role="tab">SETS</button>
     <button data-mode="logic" role="tab">LOGIC</button>
+    <button data-mode="circuit" role="tab">CIRCUIT</button>
   </div>
   <label class="vars">variables
     <span id="varPick" class="seg"></span>
   </label>
   <button id="examplesBtn" class="ghost">examples ▾</button>
 </header>
+</div>
 
 <main>
   <section class="viewer" id="viewer" aria-label="viewer"></section>
